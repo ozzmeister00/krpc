@@ -49,7 +49,7 @@ def orientToManeuver():
     vessel.auto_pilot.target_direction = (0, 1, 0)
     vessel.auto_pilot.wait()
 
-    print('Waiting until circularization burn')
+    print('Waiting until node')
     burn_ut = ut() + nextNode.time_to - (burnTime/2.) # TODO
     lead_time = 5
     connection.space_center.warp_to(burn_ut - lead_time)
@@ -67,7 +67,7 @@ def coastToManeuver():
 def burn():
     global nextNode
 
-    vessel.control.throttle = 1.0
+    vessel.control.throttle = .5
     if (remaining_burn()[1] / fullBurn) > 0.1:
         return False
 

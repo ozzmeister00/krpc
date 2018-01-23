@@ -7,13 +7,15 @@ vessel = connection.space_center.active_vessel
 
 # TODO: json files for launch profiles
 TURN_START_ALTITUDE = 500
-TURN_END_ALTITUDE = 45000
+TURN_END_ALTITUDE = 50000
 TARGET_APOAPSIS = 100000 # TODO would be helpful to modify the turn end altitude based on how high we're trying to go
 TARGET_INCLINATION = 0 # TODO launch into correct inclination and argument of periapsis
 OUT_OF_ATMOSPHERE = 75000
-DISCARD_LAUNCH_STAGE = True # TODO this might not always work and should be streamlined
+DISCARD_LAUNCH_STAGE = False # TODO this might not always work and should be streamlined
 # TODO further, the launch controller should start pushing the nose inward to better utilize fuel
 # TODO thrust should be controlled to maximize maxq potential
+# TODO fuselage
+# TODO too much osicllation with flaps, not enough roll without SAS
 
 burnTime = 0
 
@@ -148,7 +150,10 @@ def tuneApoapsis():
 
         return True
 
-    vessel.control.throttle = 0.250
+    if apoapsis() > TARGET_APOAPSIS * 0.9:
+        vessel.control.throttle = 0.250
+    else:
+        vessel.control.throttle = 1.0
     return False
 
 def coastToApoapsis():
