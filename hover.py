@@ -10,7 +10,7 @@ g = vessel.orbit.body.surface_gravity
 
 horizontalDeflectionMax = 45.0
 horizontalSpeedTolerance = 0.1
-horizontalSpeedMax = 25.0
+horizontalSpeedMax = 10.0
 
 connection.drawing.add_direction((1,0,0), vessel.orbit.body.reference_frame, length=20)
 
@@ -27,7 +27,8 @@ def main():
     UP = (1, 0, 0)
 
     vessel.auto_pilot.engage()
-
+    vessel.auto_pilot.target_roll = 0.0
+    vessel.auto_pilot.auto_tune = False
     # (1, 0, 0) <- UP
     # (0, 0, 1) <- RIGHT
     # (0, 1, 0) <- BACK
@@ -66,6 +67,7 @@ def main():
             direction = rpyToDirection(pitch, yaw)
 
             vessel.auto_pilot.target_direction = direction
+            vessel.auto_pilot.target_roll = float("nan")
 
             # turn off the brakes if we're broken enough
             if abs(flight.horizontal_speed) <= horizontalSpeedTolerance:

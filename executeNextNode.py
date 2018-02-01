@@ -38,6 +38,7 @@ def preflight():
     vessel.control.wheels = False
 
     vessel.auto_pilot.engage()
+    vessel.auto_pilot.auto_tune = False
 
     return True
 
@@ -90,6 +91,7 @@ def fineTune():
 
 def cleanup():
     vessel.control.throttle = 0.0
+    vessel.control.abort = False
     nextNode.remove()
     return True
 
@@ -168,7 +170,7 @@ def main():
 
         # bail out!
         if userHasAborted():
-            runmode = -1
+            runmode = 5
 
         # aaaaand we're done
         if programHasFinished(runmode):

@@ -7,8 +7,8 @@ vessel = connection.space_center.active_vessel
 
 # TODO: json files for launch profiles
 TURN_START_ALTITUDE = 500
-TURN_END_ALTITUDE = 50000
-TARGET_APOAPSIS = 100000 # TODO would be helpful to modify the turn end altitude based on how high we're trying to go
+TURN_END_ALTITUDE = 150000
+TARGET_APOAPSIS = 600000 # TODO would be helpful to modify the turn end altitude based on how high we're trying to go
 TARGET_INCLINATION = 0 # TODO launch into correct inclination and argument of periapsis
 OUT_OF_ATMOSPHERE = 75000
 DISCARD_LAUNCH_STAGE = False # TODO this might not always work and should be streamlined
