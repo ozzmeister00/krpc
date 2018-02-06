@@ -108,8 +108,7 @@ def directionToRPY(direction):
 
     return pitch, yaw
 
-def clamp(v, minV, maxV):
-    return max(minV, min(v, maxV))
+
 
 if __name__ == '__main__':
     main()
