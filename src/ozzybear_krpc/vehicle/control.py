@@ -6,3 +6,6 @@ This will probably get broken up in the future, so try to group things in what
 ever way seems sensible to you, man.
 """
 
+def autostage(conn, vessel):
+	# TODO
+	pass
