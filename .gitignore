@@ -17,6 +17,14 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Sublime Workspace
+*.sublime-workspace
+*.sublime-project
+
+# built files and python artifacts
+*.egg-info
+__pycache__
+
 # =========================
 # Operating System Files
 # =========================
