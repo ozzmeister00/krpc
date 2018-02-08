@@ -17,4 +17,7 @@ setuptools.setup(
     license="MIT License",
     packages=setuptools.find_packages(),
     data_files=[],
+    entry_points = {
+        'console_scripts': ['hello_world=ozzybear_krpc.cli.cli_experiments:hello_world'],
+    }
 )
