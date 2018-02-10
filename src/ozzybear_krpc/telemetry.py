@@ -27,9 +27,11 @@ class StreamManager(object):
         return self._conn.add_stream(*args)
 
     def add_apoapsis_altitude(self, vessel):
+        key = 'vessel[{0}]'.format(vessel._object_id)
         stream = self._conn.add_stream()
 
     def add_accelleration_(self, vessel, reference_frame):
+        key = 'vessel[{0}]'.format(vessel._object_id)
         stream = self._add_stream(getattr, vessel.flight)
 
     def add_vessel_altitude(self, vessel):

@@ -18,6 +18,9 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     data_files=[],
     entry_points = {
-        'console_scripts': ['hello_world=ozzybear_krpc.cli.cli_experiments:hello_world'],
+        'console_scripts': [
+            'hello_world=ozzybear_krpc.cli.cli_experiments:hello_world',
+            'launch_test=ozzybear_krpc.cli.cli_experiments:launch_tests'
+        ],
     }
 )
