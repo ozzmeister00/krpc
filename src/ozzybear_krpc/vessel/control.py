@@ -14,6 +14,12 @@ TODO:
 
 """
 
+import time
+
+INTERRUPT_STOP = 'stop'
+INTERRUPT_REMOVE = 'remove'
+INTERRUPT_CONTINUE = 'continue'
+
 
 def get_current_stage(vessel):
     return vessel.control.current_stage + 1
@@ -38,7 +44,6 @@ def get_stage_resource_amounts(vessel, stage=None, cumulative=False, res_filter=
 
 
 def _stage_ready(resources_obj, autostage_resources, mode=const.AND):
-    checks = []
 
     maxes = dict((res, resources_obj.max(res))for res in autostage_resources)
 
@@ -47,11 +52,13 @@ def _stage_ready(resources_obj, autostage_resources, mode=const.AND):
         if current <= 0 or current / maxes[resource]:
             if mode == const.OR:
                 return True
-            checks.append(True)
-
+        elif mode == const.AND:
+            return False
 
     if mode == const.AND:
-
+        return True
+    else:
+        return False
 
 
 def _get_autostage_stages(vessel):
@@ -74,14 +81,65 @@ def _get_autostage_stages(vessel):
     return stages
 
 
-def autostage(conn, vessel, stages=None, stop_if_skipping=True, autostage_resources=const.RESOURCES_FUEL):
+
+
+
+def get_gravity_turn_interrupt(conn, def_altitude=10000):
+    def gravity_turn_interrupt(vessel, altitude=def_altitude):
+
+
+
+def autostage(
+        vessel, stages=None,
+        stop_if_skipping=True,
+        interrupts=None,
+        autostage_resources=const.RESOURCES_FUEL):
 
     if stages is None:
         stages = _get_autostage_stages(vessel)
 
-    for stage in stages:
-        while True:
+    interrupts = set(interrupts)
 
+    for stage in stages:
+        if stage is None:
+            raise NonEngineStage()
+        while True:
+            if _stage_ready(vessel.resources_in_decouple_stage(stage), stages):
+                print("firing stage {0}".format(stage))
+                time.sleep(0.5)
+                vessel.control.activate_next_stage()
+                print("stage {0} fired.".format(stage))
+                break
+            if interrupts is not None:
+                for interrupt in set(interrupts):
+                    try:
+                        interrupt(vessel)
+                    except Interrupt as exc:
+                        if exc.remove:
+                            interrupts.remove(interrupt)
+                        if exc.stop:
+                            raise exc
+                        if exc.skip_stage:
+                            break
+            times.sleep(0.1)
+
+    print('no more stages!')
+
+
+class NonEngineStage(Exception):
+    pass
+
+
+class Interrupt(Exception):
+    def __init__(self, msg=None, remove=False, skip_stage=False, stop=False):
+        self.remove = remove
+        self.skip_stage = skip_stage
+        self.stop = stop
+
+        if msg is None:
+            msg = 'Interrupt'
+
+        super(Interrupt, self).__init__(msg)
 
 
 
