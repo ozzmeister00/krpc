@@ -14,6 +14,8 @@ TODO:
 
 """
 
+import ozzybear_krpc.telemetry
+
 import time
 
 INTERRUPT_STOP = 'stop'
@@ -34,13 +36,25 @@ def get_stage_resources_native(vessel, stage=None, cumulative=False):
     return resources
 
 
-def get_stage_resource_amounts(vessel, stage=None, cumulative=False, res_filter=frozenset()):
+def get_stage_resource_amounts(
+    vessel, stage=None,
+    cumulative=False, res_filter=frozenset()):
 
     resources = get_stage_resources_native(vessel, stage=stage, cumulative=cumulative)
     # TODO cleanup on aisle too dense
     resource_dict = dict((name, resources.amount(name) for name in resources.names if name not in res_filter))
 
     return resource_dict
+
+
+def prep_rocket_launch(vessel):
+    vessel.auto_pilot.target_pitch_and_heading(90, 90)
+    vessel.auto_pilot.engage()
+    vessel.control.throttle = 1
+
+
+def launch_rocket(conn, vessel, heading, turn_altitude=10000):
+    vessel.control.activate_next_stage()
 
 
 def _stage_ready(resources_obj, autostage_resources, mode=const.AND):
