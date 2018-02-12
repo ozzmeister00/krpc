@@ -1,12 +1,12 @@
-import time
 import sys
+import time
 
 import krpc
-
 from launcherCallable import Ascend
-
-from maneuvers import changePeriapsis, ExecuteManeuver
 from utils import AutoStage, hasAborted
+
+from sketches.sandbox.maneuvers import changePeriapsis, ExecuteManeuver
+
 
 def main():
     connection = krpc.connect("Launcher")

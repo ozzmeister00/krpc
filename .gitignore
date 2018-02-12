@@ -24,6 +24,7 @@ $RECYCLE.BIN/
 # built files and python artifacts
 *.egg-info
 __pycache__
+*.pyc
 
 # =========================
 # Operating System Files

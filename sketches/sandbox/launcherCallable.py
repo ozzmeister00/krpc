@@ -1,5 +1,7 @@
 import utils
-import throttle
+
+from sketches.sandbox import throttle
+
 
 class Ascend(object):
     def __init__(self, conn, vessel, targetAltitude):

@@ -1,6 +1,7 @@
-import krpc
 import math
-import utils
+
+from sketches.sandbox import utils
+
 
 def changePeriapsis(vessel, ut, targetAltitude):
     mu = vessel.orbit.body.gravitational_parameter
