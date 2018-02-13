@@ -1,10 +1,10 @@
-import utils
+import sandbox.utils as utils
+import sandbox.throttle as throttle
 
-from sketches.sandbox import throttle
-
-
-class Ascend(object):
+class Ascend(utils.Program):
     def __init__(self, conn, vessel, targetAltitude):
+        super(Ascend, self).__init__('Ascend')
+
         self.conn = conn
         self.vessel = vessel
         self.flight = vessel.flight(vessel.orbit.body.reference_frame)
@@ -31,6 +31,7 @@ class Ascend(object):
         self.autoPilot.engage()
 
     def __call__(self):
+        # TODO conditional calls make it hard to send messages to the message queue
         if self.altitude() < self.turnStartAltitude:
             self.autoPilot.target_pitch_and_heading(90, 90)
         elif self.turnStartAltitude < self.altitude() and self.altitude() < self.turnEndAltitude:
@@ -46,3 +47,6 @@ class Ascend(object):
         else:
             self.throttle()
             return False
+
+    def displayValues(self):
+        return [self.prettyName]

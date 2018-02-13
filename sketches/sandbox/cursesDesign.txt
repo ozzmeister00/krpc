@@ -1,16 +1,16 @@
 +- Flight --------+- Program -----------+
-| Ap  :79m        | Name: Launch        |
-| Pe  :-609000m   | TgAlt: 200000m      |
-| Ecc :0          | Mode: Prelaunch     |
-| Inc :0          | GravTurn%:    0%    |
-| MET :0:00:00    |                     |
-| Sp  :0          |                     |
-| Alt :79m        |                     |
-| G   :1          |                     |
-| Pres 1.0 atm    |                     |
-| Sit  PreLaunch  |                     |
-| Stg  01         |                     |
-| SLoc Ready      |                     |
+| Ap  :           |                     |
+| Pe  :           |                     |
+| Ecc :           |                     |
+| Inc :           |                     |
+| MET :           |                     |
+| Sp  :           |                     |
+| Alt :           |                     |
+| G   :           |                     |
+| Pres:           |                     |
+| Sit :           |                     |
+| Stg :           |                     |
+| SLoc:           |                     |
 +-----------------+---------------------+
 +- Messages ----------------------------+
 |                                       |

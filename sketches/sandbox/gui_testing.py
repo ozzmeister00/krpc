@@ -1,8 +1,6 @@
-import time
+from collections import deque
 
 from bearlibterminal import terminal
-
-import krpc
 
 templateStr = '''
 +- Flight --------+- Program -----------+
@@ -49,53 +47,101 @@ templateStr = '''
 +---------------------------------------+
 '''.split('\n')
 
-conn = krpc.connect("GUI")
-vessel = conn.space_center.active_vessel
-flight = vessel.flight(vessel.orbit.body.reference_frame)
 
+class Display(object):
+    def __init__(self, connection, vessel, program=None):
+        self.vessel = vessel
+        self.connection = connection
+        self.program = program
+        self.messages = deque(maxlen=5)
 
-terminal.open()
+        terminal.open()
+        terminal.set('window: size={}x{}'.format(len(templateStr[1]) + 2, len(templateStr) + 2))
 
-terminal.set('window: size={}x{}'.format(len(templateStr[1]) + 2, len(templateStr) + 2))
+        for i, line in enumerate(templateStr):
+            terminal.printf(0, i, ' {} '.format(line))
 
-for i, line in enumerate(templateStr):
-    terminal.printf(0, i, ' {} '.format(line))
+        terminal.refresh()
 
-terminal.refresh()
+    def changeProgram(self, newProgram=None):
+        self.program = newProgram
 
-y = 2
+    def putValues(self, x, y, values):
+        for i, value in enumerate(values):
+            terminal.printf(x, y + i, str(value))
 
-situations = {vessel.situation.docked:'Docked',
-vessel.situation.escaping:'Escaping',
-vessel.situation.flying:'Flying',
-vessel.situation.landed:'Landed',
-vessel.situation.orbiting:'Orbit',
-vessel.situation.pre_launch:'PreLaunch',
-vessel.situation.splashed:'Splashed',
-vessel.situation.sub_orbital:'SubOrbit',
-}
+    def addMessage(self, message):
+        self.messages.appendleft(message)
 
-while True:
-    for i in range(12):
-        terminal.printf(9, y+i, '          ')
+    def __call__(self):
+        situations = {self.vessel.situation.docked: 'Docked',
+                      self.vessel.situation.escaping: 'Escaping',
+                      self.vessel.situation.flying: 'Flying',
+                      self.vessel.situation.landed: 'Landed',
+                      self.vessel.situation.orbiting: 'Orbit',
+                      self.vessel.situation.pre_launch: 'PreLaunch',
+                      self.vessel.situation.splashed: 'Splashed',
+                      self.vessel.situation.sub_orbital: 'SubOrbit',
+                      }
 
-    terminal.printf(9, y, vessel.name) #| Name:
-    terminal.printf(9, y+1, str(round(vessel.orbit.apoapsis_altitude, 0))) #| Ap:
-    terminal.printf(9, y+2, str(round(vessel.orbit.periapsis_altitude, 0))) #| Pe:
-    terminal.printf(9, y+3, str(round(vessel.orbit.eccentricity, 6))) #| Ecc:
-    terminal.printf(9, y+4, str(round(vessel.orbit.inclination, 2))) #| Inc:
-    terminal.printf(9, y+5, str(round(vessel.met))) #| MET:
-    terminal.printf(9, y+6, str(round(flight.speed, 2))) #| Sp:
-    terminal.printf(9, y+7, str(round(flight.mean_altitude, 2))) #| Alt:
-    terminal.printf(9, y+8, str(round(flight.g_force, 2))) #| G:
-    terminal.printf(9, y+9, str(round(flight.atmosphere_density))) #| Pres:
-    terminal.printf(9, y+10, situations[vessel.situation]) #| Sit:
-    terminal.printf(9, y+11, str(vessel.control.current_stage)) #| Stg:
+        y = 2  # start height
+        x1 = 9  # start width of the vessel info display
+        x2 = 21  # start width of the program info display
 
-    terminal.refresh()
+        # Messages
+        x3 = 3
+        y2 = 16
 
-    time.sleep(0.1)
+        # blank the display to prevent overdraw
+        for i in range(12):
+            terminal.printf(x1, y + i, ''.ljust(10, ' '))
+            terminal.printf(x2, y + i, ''.ljust(20, ' '))
 
+        # blank the messages
+        for i in range(5):
+            terminal.printf(x3, y2 + i, ''.ljust(38, ' '))
 
-terminal.close()
+        # print the vessel stats to the screen
+        vesselValues = [self.vessel.name,
+                        round(self.vessel.orbit.apoapsis_altitude, 0),
+                        round(self.vessel.orbit.periapsis_altitude, 0),
+                        round(self.vessel.orbit.eccentricity, 6),
+                        round(self.vessel.orbit.inclination, 2),
+                        round(self.vessel.met),
+                        round(self.vessel.flight().speed, 2),
+                        round(self.vessel.flight().mean_altitude, 2),
+                        round(self.vessel.flight().g_force, 2),
+                        round(self.vessel.flight().atmosphere_density),
+                        situations[self.vessel.situation],
+                        self.vessel.control.current_stage
+                        ]
 
+        manualValues = ['Mode : Manual',
+                        'RdAlt: ',
+                        ' ',
+                        'Mass : ',
+                        'LqFul: ',
+                        'Ox   : ',
+                        ' ',
+                        ' ',
+                        ' ',
+                        ' ',
+                        ' ',
+                        ' '
+                        ]
+
+        self.putValues(x1, y, vesselValues)
+
+        if self.program:
+            self.putValues(x2, y, self.program.displayValues())
+
+            if self.program.messages:
+                self.messages.appendleft(self.program.messages.popleft())
+
+            self.putValues(x3, y2, self.messages)
+
+        # if there's no program, print more vessel information
+        else:
+            self.putValues(x2, y, manualValues)
+
+        terminal.refresh()

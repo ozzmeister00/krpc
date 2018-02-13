@@ -1,11 +1,14 @@
+from __future__ import absolute_import, print_function, division
+
 import sys
 import time
 
 import krpc
-from launcherCallable import Ascend
-from utils import AutoStage, hasAborted
+from sandbox.launcherCallable import Ascend
+from sandbox.utils import AutoStage, hasAborted
+from sandbox.gui_testing import Display
 
-from sketches.sandbox.maneuvers import changePeriapsis, ExecuteManeuver
+from sandbox.maneuvers import changePeriapsis, ExecuteManeuver
 
 
 def main():
@@ -16,40 +19,46 @@ def main():
     ascend = Ascend(connection, vessel, 200000)
     staging = AutoStage(vessel)
 
-    for i in range(3, -1, -1):
-        print(i, '...')
+    display = Display(connection, vessel, program=ascend)
+
+    for i in range(3, 0, -1):
+        display.addMessage('{}...'.format(i))
+        display()
         time.sleep(1)
 
-    print('Launch')
+    display.addMessage('Launch!')
 
     vessel.control.activate_next_stage()
 
     while not ascend() and not hasAborted(vessel):
+        display()
         staging()
         time.sleep(0.1)
 
     if hasAborted(vessel):
-        print('Good luck!')
+        display.addMessage('Good luck!')
         sys.exit(1)
 
     vessel.control.throttle = 0.0
 
     time.sleep(1)
 
-    print('Circularizing')
+    display.addMessage('Circularizing')
     node = changePeriapsis(vessel, ut(), vessel.orbit.apoapsis_altitude)
-    doManeuver = ExecuteManeuver(connection, vessel, node, tuneTime = 5, leadTime=60)
+    doManeuver = ExecuteManeuver(connection, vessel, node, tuneTime=5, leadTime=60)
+
+    display.changeProgram(doManeuver)
 
     while not doManeuver() and not hasAborted(vessel):
+        display()
         staging()
         time.sleep(0.1)
 
     node.remove()
 
-    print('Welcome to space!')
+    display.addMessage('Welcome to space!')
+    display.changeProgram(None)
+
 
 if __name__ == '__main__':
     main()
-
-
-

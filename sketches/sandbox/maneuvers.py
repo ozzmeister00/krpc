@@ -1,6 +1,6 @@
 import math
 
-from sketches.sandbox import utils
+import sandbox.utils as utils
 
 
 def changePeriapsis(vessel, ut, targetAltitude):
@@ -49,8 +49,9 @@ def smoothThrottle(vessel, deltaV, t):
     return F / vessel.available_thrust
 
 
-class ExecuteManeuver(object):
+class ExecuteManeuver(utils.Program):
     def __init__(self, conn, vessel, node, tuneTime=2, leadTime=5):
+        super(ExecuteManeuver, self).__init__('Maneuver')
         self.conn = conn
         self.vessel = vessel
         self.node = node
@@ -72,11 +73,10 @@ class ExecuteManeuver(object):
         if not self.node:
             return True
 
-        self.ap.wait()
-
         burnUT = self.nodeUT - (self.totalBurnTime / 2.)
 
         if self.ut() - burnUT - self.leadTime:
+            # TODO this is a blocking call
             self.conn.space_center.warp_to(burnUT - self.leadTime)
 
         if self.ut() < burnUT:
@@ -87,6 +87,7 @@ class ExecuteManeuver(object):
         if self.remainingBurnTime > self.tuneTime:
             self.vessel.control.throttle = 1
             return False
+        # Tuning isn't quite working right. A little too aggressive
         elif self.remainingBurn()[1] > 0:
             self.vessel.control.throttle = max(0.005, smoothThrottle(self.vessel, self.remainingBurn()[1], self.tuneTime))
             return False
@@ -94,3 +95,6 @@ class ExecuteManeuver(object):
             self.vessel.control.throttle = 0.0
             self.node = None
             return True
+
+    def displayValues(self):
+        return [self.prettyName] # todo

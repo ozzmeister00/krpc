@@ -1,4 +1,5 @@
 import time
+from collections import deque
 
 def gHere(body, vessel):
     return body.surface_gravity * (body.mass / ((vessel.flight(body.reference_frame).altitude + body.radius)**2))
@@ -63,3 +64,14 @@ class PID(object):
         self.lastPosition = currV
 
         return output
+
+class Program(object):
+    def __init__(self, prettyName):
+        self.prettyName = prettyName
+        self.messages = deque()
+
+    def __call__(self):
+        raise NotImplementedError("Sublcass of Program has not been set up correctly. Implement a __call__ method.")
+
+    def displayValues(self):
+        raise NotImplementedError("Sublcass of Program has not been set up correctly. Implement a displayValues method.")
