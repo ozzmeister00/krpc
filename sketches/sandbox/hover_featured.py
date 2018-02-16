@@ -1,34 +1,31 @@
-import krpc
-import math
+from __future__ import absolute_import, print_function, division
+
 import time
+import krpc
 
-connection = krpc.connect("Launcher")
-vessel = connection.space_center.active_vessel
+from sandbox.utils import Program, hasAborted, clamp, rpyToDirection
+from sandbox.gui_testing import Display
 
-ut = connection.add_stream(getattr, connection.space_center, 'ut')
-altitude = connection.add_stream(getattr, vessel.flight(), 'mean_altitude')
+# TODO add action groups to change target altitude
+# TODO add display values
 
-seekAlt = 15
-descentRate = 0.1
-landingAlt = 10
-horizSpeedMax = 15
-horizDeflectionMax = 45
-horizSpeedTolerance = 0.1
+class Hover(Program):
+    def __init__(self, connection, vessel):
+        super(Hover, self).__init__('Hover')
 
-# lock shipLatLng to SHIP:GEOPOSITION.
-# lock surfaceElevation to shipLatLng:TERRAINHEIGHT.
-# lock betterALTRADAR to max(0.1, ALTITUDE - surfaceElevation).
+        self.connection = connection
+        self.vessel = vessel
+        self.flight = self.vessel.flight(self.vessel.orbit.body.reference_frame)
+        self.control = self.vessel.control
 
-def Fg_here():
-    return 10.0
-
-class Hover(object):
-    def __init__(self, vessel):
-        self.seekAlt = 15
+        self.targetAlt = 15
         self.descentRate = 0.1
         self.landingAlt = 10
-        self.vessel = vessel
 
+        # TODO: I think these values are a little too responsive
+        self.horizSpeedMax = 15
+        self.horizDeflectionMax = 45
+        self.horizSpeedTolerance = 0.1
 
         self.vessel.control.sas = False
         self.vessel.control.rcs = False
@@ -37,85 +34,88 @@ class Hover(object):
         self.vessel.control.legs = True
         self.vessel.control.wheels = False
 
-        self.midThrottle = Fg_here()/self.availableThrust()
-
-        self.pitchOffset = 0.0
-        self.yawOffset = 0.0
-
-        self.xOffset = 0.0
-        self.yOffset = 0.0
-
-        self.xPid = None
-        self.yPid = None
+        self.vessel.auto_pilot.engage()
+        self.vessel.auto_pilot.target_direction = (1, 0, 0)
+        self.vessel.auto_pilot.target_roll = float('nan')
 
         self.midPitch = 0.0
-        self.midYaw = UP:Yaw
+        self.midYaw = 0.0
 
-        self.targetPitch = self.midPitch + self.xOffset + self.pitchOffset
-        self.targetYaw = self.midYaw + self.yOffset - self.yawOffset
+    def __call__(self):
+        self.connection.drawing.clear()
 
-        self.runMode = 1
+        if hasAborted(self.vessel):
+            self.control.gear = True
+            self.targetAlt -= 1.0
+            time.sleep(1)
+            if self.vessel.situation == self.vessel.situation.landed:
+                self.control.abort = False
+                return False
 
-    def stabilizer(self):
-        self.pitchOffset = 0.0
-        self.yawOffset = 0.0
+        if self.control.brakes:
 
-    def killHorizontal(self):
-        self.xOffset = 0.0
-        self.yOffset = 0.0
+            # Kill horizontal velocity
+            up, back, right = self.flight.velocity
 
-    def goDown(self):
-        self.seekAlt -= 1
+            pitchOffset = (right / self.horizSpeedMax) * self.horizDeflectionMax
+            yawOffset = (back / self.horizSpeedMax) * self.horizDeflectionMax
 
-    def goUp(self):
-        self.seekAlt += 1
+            # clamp to range
+            pitchOffset = clamp(pitchOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
+            yawOffset = clamp(yawOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
 
-    def land(self):
-        pass
+            pitch = self.midPitch - pitchOffset
+            yaw = self.midYaw - yawOffset
 
+            direction = rpyToDirection(pitch, yaw)
 
-def preflight():
+            self.vessel.auto_pilot.target_direction = direction
+            self.vessel.auto_pilot.target_roll = float("nan")
 
-    # make sure the vessel is ready to roll
-    vessel.control.sas = True
-    vessel.control.rcs = False
-    vessel.control.throttle = 0.0
-    vessel.control.gear = False
-    vessel.control.legs = True
-    vessel.control.wheels = False
+            # turn off the brakes if we're broken enough
+            if abs(self.flight.horizontal_speed) <= self.horizSpeedTolerance:
+                self.control.brakes = False
 
-    vessel.auto_pilot.engage()
+        else:
+            self.vessel.auto_pilot.target_direction = (1, 0, 0)
 
-    return 1
+        self.connection.drawing.add_direction(self.vessel.direction(self.vessel.surface_reference_frame),
+                                              self.vessel.surface_reference_frame)
+        self.connection.drawing.add_direction(self.vessel.auto_pilot.target_direction,
+                                              self.vessel.surface_reference_frame)
 
+        alt_error = self.targetAlt - self.flight.surface_altitude
 
-def userHasAborted():
-    return vessel.control.abort
+        a = self.vessel.orbit.body.surface_gravity - self.flight.vertical_speed + alt_error
 
-def programHasFinished(runmode):
-    return runmode == sorted(runModes.keys())[-1] + 1
+        # Compute throttle setting using newton's law F=ma
+        F = self.vessel.mass * a
 
-runModes = {0:preflight}
+        if not self.vessel.available_thrust:
+            return False
+
+        self.control.throttle = F / self.vessel.available_thrust
+        return True
+
+    def displayValues(self):
+        return [self.prettyName]
+
 
 def main():
-    runmode = 0
+    connection = krpc.connect("Hover")
+    vessel = connection.space_center.active_vessel
+    hover = Hover(connection, vessel)
+    display = Display(connection, vessel, program=hover)
 
-    while runmode >= 0:
-        # if the current runmode has met its criteria, move on
+    if not vessel.available_thrust:
+        vessel.control.activate_next_stage()
 
-        runmode = runModes[runmode]()
+    while hover():
+        display()
+        time.sleep(0.01)
 
-        # bail out!
-        if userHasAborted():
-            runmode = -1
-
-        # aaaaand we're done
-        if programHasFinished(runmode):
-            runmode = -1
-
-        time.sleep(.1)
-
-    vessel.auto_pilot.disengage()
+    vessel.control.throttle = 0.0
+    vessel.control.sas = True
 
 
 if __name__ == '__main__':

@@ -102,7 +102,7 @@ class Display(object):
             terminal.printf(x3, y2 + i, ''.ljust(38, ' '))
 
         # print the vessel stats to the screen
-        vesselValues = [self.vessel.name,
+        vesselValues = [self.vessel.name[:10],
                         round(self.vessel.orbit.apoapsis_altitude, 0),
                         round(self.vessel.orbit.periapsis_altitude, 0),
                         round(self.vessel.orbit.eccentricity, 6),

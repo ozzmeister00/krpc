@@ -1,8 +1,9 @@
 import time
 from collections import deque
+from math import cos, sin, radians, degrees, atan2, asin
 
 def gHere(body, vessel):
-    return body.surface_gravity * (body.mass / ((vessel.flight(body.reference_frame).altitude + body.radius)**2))
+    return body.surface_gravity * (body.mass / ((vessel.flight(body.reference_frame).mean_altitude + body.equatorial_radius)**2))
 
 def fgHere(body, vessel):
     return vessel.mass * gHere(body, vessel)
@@ -12,6 +13,20 @@ def hasAborted(vessel):
 
 def normalizeToRange(v, a, b):
     return (v - a) / (b - a)
+
+def rpyToDirection(pitch, yaw):
+    x = cos(radians(yaw)) * cos(radians(pitch))
+    y = sin(radians(yaw)) * cos(radians(pitch))
+    z = sin(radians(pitch))
+
+    return x, y, z
+
+def directionToRPY(direction):
+    x, y, z = direction
+    pitch = degrees(asin(z))
+    yaw = degrees(atan2(y, x))
+
+    return pitch, yaw
 
 class AutoStage(object):
     def __init__(self, vessel):
