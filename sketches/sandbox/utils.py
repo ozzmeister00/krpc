@@ -43,6 +43,23 @@ class AutoStage(object):
 
         self.vessel.control.activate_next_stage()
 
+
+class Fairing(object):
+    def __init__(self, connection, vessel, deployAtms=0.1):
+        flight = vessel.flight(vessel.orbit.body.reference_frame)
+        self.atms = connection.add_stream(getattr, flight, 'atmosphere_density')
+        self.deployAtms = 0.1
+
+        self.fairings = [part for part in vessel.parts.with_tag('deployFairing')]
+        self.deployed = False
+
+    def __call__(self):
+        if self.atms() <= self.deployAtms and not self.deployed:
+            for fairing in self.fairings:
+                fairing.jettison()
+            self.deployed = True
+
+
 def clamp(v, minV, maxV):
     return max(minV, min(v, maxV))
 
