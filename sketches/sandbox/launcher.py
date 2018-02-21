@@ -5,7 +5,7 @@ import time
 
 import krpc
 from sandbox.launcherCallable import Ascend
-from sandbox.utils import AutoStage, hasAborted
+from sandbox.utils import AutoStage, Fairing, hasAborted
 from sandbox.gui_testing import Display
 
 from sandbox.maneuvers import changePeriapsis, ExecuteManeuver
@@ -18,6 +18,7 @@ def main():
 
     ascend = Ascend(connection, vessel, 200000)
     staging = AutoStage(vessel)
+    fairing = Fairing(connection, vessel)
 
     display = Display(connection, vessel, program=ascend)
 
@@ -33,6 +34,7 @@ def main():
     while not ascend() and not hasAborted(vessel):
         display()
         staging()
+        fairing()
         time.sleep(0.1)
 
     if hasAborted(vessel):
@@ -45,7 +47,7 @@ def main():
 
     display.addMessage('Circularizing')
     node = changePeriapsis(vessel, ut(), vessel.orbit.apoapsis_altitude)
-    doManeuver = ExecuteManeuver(connection, vessel, node, tuneTime=5, leadTime=60)
+    doManeuver = ExecuteManeuver(connection, vessel, node=node, tuneTime=5, leadTime=60)
 
     display.changeProgram(doManeuver)
 

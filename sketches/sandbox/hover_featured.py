@@ -18,13 +18,13 @@ class Hover(Program):
         self.flight = self.vessel.flight(self.vessel.orbit.body.reference_frame)
         self.control = self.vessel.control
 
-        self.targetAlt = 15
+        self.targetAlt = 12
         self.descentRate = 0.1
         self.landingAlt = 10
 
         # TODO: I think these values are a little too responsive
-        self.horizSpeedMax = 15
-        self.horizDeflectionMax = 45
+        self.horizSpeedMax = 10.0
+        self.horizDeflectionMax = 45.0
         self.horizSpeedTolerance = 0.1
 
         self.vessel.control.sas = False
