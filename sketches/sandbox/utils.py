@@ -48,7 +48,7 @@ class Fairing(object):
     def __init__(self, connection, vessel, deployAtms=0.1):
         flight = vessel.flight(vessel.orbit.body.reference_frame)
         self.atms = connection.add_stream(getattr, flight, 'atmosphere_density')
-        self.deployAtms = 0.1
+        self.deployAtms = 0.01
 
         self.fairings = [part for part in vessel.parts.with_tag('deployFairing')]
         self.deployed = False
@@ -56,7 +56,7 @@ class Fairing(object):
     def __call__(self):
         if self.atms() <= self.deployAtms and not self.deployed:
             for fairing in self.fairings:
-                fairing.jettison()
+                fairing.fairing.jettison()
             self.deployed = True
 
 

@@ -30,7 +30,5 @@ def main():
     vessel.control.sas = True
     vessel.control.throttle = 0.0
 
-    input('Test?')
-
 if __name__ == '__main__':
     main()
