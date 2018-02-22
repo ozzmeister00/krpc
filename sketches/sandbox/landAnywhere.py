@@ -21,26 +21,28 @@ def main():
 
     g = vessel.orbit.body.gravitational_parameter
 
+    radius = vessel.orbit.body.equatorial_radius
+
     # get ourselves into a 30km x 30km parking orbit
     lowerPeriapsisNode = changePeriapsis(vessel, ut(), 30000)
     lowerPeriapsis = ExecuteManeuver(connection, vessel, node=lowerPeriapsisNode)
     display.changeProgram(lowerPeriapsis)
-    while lowerPeriapsis():
+    while not lowerPeriapsis():
         display()
         time.sleep(0.1)
 
     lowerApoapsisNode = changeApoapsis(vessel, ut(), 30000)
     lowerApoapsis = ExecuteManeuver(connection, vessel, node=lowerApoapsisNode)
     display.changeProgram(lowerApoapsis)
-    while lowerApoapsis():
+    while not lowerApoapsis():
         display()
         time.sleep(0.1)
 
     # deorbit to to PE = -(0.5 * body.radius)
-    deorbitPeriapsisHeight = vessel.orbit.body.equatorial_radius * -0.5
+    deorbitPeriapsisHeight = radius * -0.5
     deorbitPeriapsisNode = changePeriapsis(vessel, ut(), deorbitPeriapsisHeight)
     deorbit = ExecuteManeuver(connection, vessel, node=deorbitPeriapsisNode)
-    while deorbit():
+    while not deorbit():
         display()
         time.sleep(0.1)
 

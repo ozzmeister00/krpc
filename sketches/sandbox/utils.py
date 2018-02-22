@@ -1,3 +1,4 @@
+import krpc
 import time
 from collections import deque
 from math import cos, sin, radians, degrees, atan2, asin
@@ -50,7 +51,13 @@ class Fairing(object):
         self.atms = connection.add_stream(getattr, flight, 'atmosphere_density')
         self.deployAtms = deployAtms
 
-        self.fairings = [part for part in vessel.parts.with_tag('deployFairing')]
+        self.fairings = []
+
+        try:
+            self.fairings = [part for part in vessel.parts.with_tag('deployFairing')]
+        except:
+            pass
+
         self.deployed = False
 
     def __call__(self):
@@ -110,3 +117,10 @@ class Program(object):
 
     def displayValues(self):
         raise NotImplementedError("Sublcass of Program has not been set up correctly. Implement a displayValues method.")
+
+
+def setupConsole():
+    connection = krpc.connect("Console")
+    vessel = connection.space_center.active_vessel
+    ut = connection.add_stream(getattr, connection.space_center, 'ut')
+    return connection, vessel, ut
