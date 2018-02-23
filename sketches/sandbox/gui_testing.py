@@ -71,6 +71,7 @@ class Display(object):
             terminal.printf(x, y + i, str(value))
 
     def addMessage(self, message):
+        print(message)
         self.messages.appendleft(message)
 
     def __call__(self):
@@ -138,10 +139,10 @@ class Display(object):
             if self.program.messages:
                 self.messages.appendleft(self.program.messages.popleft())
 
-            self.putValues(x3, y2, self.messages)
-
         # if there's no program, print more vessel information
         else:
             self.putValues(x2, y, manualValues)
+
+        self.putValues(x3, y2, self.messages)
 
         terminal.refresh()
