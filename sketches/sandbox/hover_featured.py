@@ -10,7 +10,7 @@ from sandbox.gui_testing import Display
 # TODO add display values
 
 class Hover(Program):
-    def __init__(self, connection, vessel):
+    def __init__(self, connection, vessel, targetAlt=12):
         super(Hover, self).__init__('Hover')
 
         self.connection = connection
@@ -18,7 +18,7 @@ class Hover(Program):
         self.flight = self.vessel.flight(self.vessel.orbit.body.reference_frame)
         self.control = self.vessel.control
 
-        self.targetAlt = 12
+        self.targetAlt = targetAlt
         self.descentRate = 0.1
         self.landingAlt = 10
 
@@ -34,9 +34,10 @@ class Hover(Program):
         self.vessel.control.legs = True
         self.vessel.control.wheels = False
 
-        self.vessel.auto_pilot.engage()
-        self.vessel.auto_pilot.target_direction = (1, 0, 0)
+        self.vessel.auto_pilot.reference_frame = self.vessel.orbit.body.reference_frame
+        self.vessel.auto_pilot.target_direction = (0, 0, 1)
         self.vessel.auto_pilot.target_roll = float('nan')
+        self.vessel.auto_pilot.engage()
 
         self.midPitch = 0.0
         self.midYaw = 0.0
@@ -77,7 +78,7 @@ class Hover(Program):
                 self.control.brakes = False
 
         else:
-            self.vessel.auto_pilot.target_direction = (1, 0, 0)
+            self.vessel.auto_pilot.target_direction = (0, 0, 1)
 
         self.connection.drawing.add_direction(self.vessel.direction(self.vessel.surface_reference_frame),
                                               self.vessel.surface_reference_frame)
