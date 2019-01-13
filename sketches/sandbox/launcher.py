@@ -4,6 +4,7 @@ import sys
 import time
 
 import krpc
+from sandbox import getConnection
 from sandbox.launcherCallable import Ascend
 from sandbox.utils import AutoStage, Fairing, hasAborted
 from sandbox.gui_testing import Display
@@ -12,11 +13,12 @@ from sandbox.maneuvers import changePeriapsis, ExecuteManeuver
 
 
 def main():
-    connection = krpc.connect("Launcher")
+    # todo make a conneciton utility so I only ever have to define that in one file
+    connection = getConnection()
     vessel = connection.space_center.active_vessel
     ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
-    ascend = Ascend(connection, vessel, 200000)
+    ascend = Ascend(connection, vessel, 500000)
     staging = AutoStage(vessel)
     fairing = Fairing(connection, vessel)
 
@@ -54,7 +56,7 @@ def main():
     while not doManeuver() and not hasAborted(vessel):
         display()
         staging()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     node.remove()
 

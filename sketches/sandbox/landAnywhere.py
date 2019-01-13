@@ -1,3 +1,4 @@
+
 import time
 
 import numpy as np
@@ -222,7 +223,6 @@ class SoftTouchdown(Program):
                 'vrtsp: ' + str(round(self.flight.vertical_speed))
         ]
 
-
 def main():
     connection = krpc.connect("Landing")
     vessel = connection.space_center.active_vessel
@@ -302,8 +302,112 @@ def main():
     display.addMessage("landed")
     display()
 
+def insightLanding():
+    def vessel():
+        return conn.space_center.active_vessel
 
+    conn = krpc.connect("Insight")
+
+    drogues = vessel().parts.with_tag("drogue")
+    mains = vessel().parts.with_tag("main")
+    heatshield = vessel().parts.with_tag("heatShield")[0]
+    fairingSep = vessel().parts.with_tag("fairingSep")
+    cruiseSep = vessel().parts.with_tag("cruiseSep")
+
+    #vessel.auto_pilot.reference_frame = vessel.reference_frame
+    vessel().auto_pilot.engage()
+    # point at sun until 50000 meters
+    sun = conn.space_center.bodies['Sun']
+
+    # this doesn't quite point right, but we're getting what we need out of it
+    print("waiting until 60000m")
+    while vessel().flight().mean_altitude > 60000:
+        rf = vessel().reference_frame
+        pos = sun.position(rf)
+        vessel().auto_pilot.target_direction = pos
+        time.sleep(0.05)
+
+    print("decoupling cruise stage")
+    # deploy cruise stage
+    for part in cruiseSep:
+        part.decoupler.decouple()
+
+    print("pointing retrograde")
+    # point retrograde
+    vessel().auto_pilot.target_direction = vessel().flight().retrograde
+
+    print("waiting until we're out of plasma")
+    # wait until heatshield thermal flux is less than 0
+    isOutOfPlasma = False
+    underAltitude = False
+    while not isOutOfPlasma and not underAltitude:
+        underAltitude = vessel().flight().mean_altitude < 15000.0
+        isOutOfPlasma = heatshield.thermal_convection_flux < 0.0
+        time.sleep(0.05)
+
+    next = vessel().flight().mean_altitude - 1000
+
+    print("waiting until a bit more")
+    while vessel().flight().surface_altitude > next:
+        time.sleep(0.05)
+
+    print("decoupling heat shield")
+    heatshield.decoupler.decouple()
+
+    print("deploying drouges")
+    for drogue in drogues:
+        if drogue.parachute:
+            drogue.parachute.deploy()
+
+    print("waiting until 2500")
+    while vessel().flight().surface_altitude > 2500.0:
+        print(vessel().flight().surface_altitude)
+        time.sleep(0.1)
+
+    print("deploying mains")
+    for m in mains:
+        m.parachute.deploy()
+
+    print("waiting until 1000m")
+    while vessel().flight().surface_altitude > 2000.0:
+        time.sleep(0.05)
+
+    print("separating fairing stage'")
+    for i in fairingSep:
+        if i.fairing:
+            i.fairing.jettison()
+        elif i.decoupler:
+            i.decoupler.decouple()
+        elif i.engine:
+            i.engine.active = True
+        else:
+            print("What is a {}".format(i.name))
+
+    # fire the engines!
+    vessel().control.activate_next_stage()
+
+    softLanding()
+
+def softLanding():
+    connection = krpc.connect("Landing")
+    vessel = connection.space_center.active_vessel
+
+    descend = Descend(vessel, connection)
+    print("descending under suicide burn")
+    while descend():
+        time.sleep(0.01)
+
+    vessel.control.gear = True
+    softTouchdown = SoftTouchdown(vessel, connection)
+    print("activating soft touchdown")
+    while softTouchdown():
+        time.sleep(0.01)
+
+    print("touchdown")
+    vessel.control.throttle = 0.0
+    vessel.control.sas = True
+    vessel.auto_pilot.disengage()
 
 
 if __name__ == '__main__':
-    main()
+    insightLanding()
