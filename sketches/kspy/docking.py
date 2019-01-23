@@ -1,3 +1,11 @@
+from __future__ import absolute_import, print_function, division
+
+import math
+import time
+
+from .pid import PID
+from .maths import Vector3, getOffsets, getVelocities
+
 
 def getSetpoints(offset, proceed, speed_limit):
     '''
@@ -12,7 +20,7 @@ def getSetpoints(offset, proceed, speed_limit):
         tvforward = -.2
     else:
         tvforward = max(min((10 - offset.forward), speed_limit), -speed_limit)
-    return v3(tvright, tvforward, tvup)
+    return Vector3(tvright, tvforward, tvup)
 
 
 def proceedCheck(offset):
@@ -22,6 +30,7 @@ def proceedCheck(offset):
     return (offset.up < .1 and
             offset.right < .1 and
             math.fabs(10 - offset.forward) < .1)
+
 
 def dock(conn, speed_limit=1.0):
     # Setup KRPC
@@ -62,4 +71,4 @@ def dock(conn, speed_limit=1.0):
         v.control.right = -rightPID.update(velocity.right)
         v.control.forward = -forwardPID.update(velocity.forward)
 
-        time.sleep(.1)
+        time.sleep(.05)

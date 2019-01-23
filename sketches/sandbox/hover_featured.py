@@ -103,20 +103,6 @@ class Hover(Program):
 
 
 def main():
-    connection = krpc.connect("Hover")
-    vessel = connection.space_center.active_vessel
-    hover = Hover(connection, vessel)
-    display = Display(connection, vessel, program=hover)
-
-    if not vessel.available_thrust:
-        vessel.control.activate_next_stage()
-
-    while hover():
-        display()
-        time.sleep(0.01)
-
-    vessel.control.throttle = 0.0
-    vessel.control.sas = True
 
 
 if __name__ == '__main__':

@@ -4,9 +4,15 @@ import collections
 
 Vector3 = collections.namedtuple('v3', 'right forward up')
 
+
+def normalizeToRange(v, a, b):
+    return (v - a) / (b - a)
+
+
 def unit_vector(vector):
     """ Returns the unit vector of the vector provided.  """
     return vector / np.linalg.norm(vector)
+
 
 def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2'"""
@@ -108,7 +114,6 @@ def v3minus(v, t):
     return (a, b, c)
 
 
-
 def dist(v, t):
     '''
     returns distance (magnitude) between two
@@ -134,15 +139,16 @@ def speed(v, t):
     c = vec[2] * vec[2]
     return math.sqrt(a + b + c)
 
+
 def getOffsets(v, t):
     '''
     returns the distance (right, forward, up) between docking ports.
     '''
-    return v3._make(t.part.position(v.parts.controlling.reference_frame))
+    return Vector3._make(t.part.position(v.parts.controlling.reference_frame))
 
 
 def getVelocities(v, t):
     '''
     returns the relative velocities (right, forward, up)
     '''
-    return v3._make(v.velocity(t.reference_frame))
+    return Vector3._make(v.velocity(t.reference_frame))
