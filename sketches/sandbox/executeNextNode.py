@@ -21,7 +21,7 @@ def main():
     while not doManeuver():
         #autostage()
         display()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     display.addMessage("Maneuver Complete")
 

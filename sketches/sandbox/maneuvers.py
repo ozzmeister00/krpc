@@ -54,7 +54,7 @@ def calculateBurnTime(vessel, node):
 
 
 def smoothThrottle(vessel, deltaV, t):
-    ISP = vessel.specific_impulse * utils.gHere()
+    ISP = vessel.specific_impulse * utils.gHere(vessel.orbit.body, vessel)
     m0 = vessel.mass
     m1 = m0 / math.exp(deltaV/ISP)
     F = ((m0 - m1) / t) * ISP

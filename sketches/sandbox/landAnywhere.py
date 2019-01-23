@@ -241,7 +241,7 @@ def main():
     apoapsis = vessel.orbit.apoapsis_altitude
     periapsis = vessel.orbit.periapsis_altitude
 
-    if periapsis > 31000:
+    if periapsis > 30000:
         display.addMessage("Lowering Periapsis")
         display()
         # get ourselves into a 30km x 30km parking orbit
@@ -252,7 +252,7 @@ def main():
             display()
             time.sleep(0.01)
 
-    if apoapsis > 31000:
+    if apoapsis > 30000:
         display.addMessage("Lowering Apoapsis")
         display()
         lowerApoapsisNode = changeApoapsis(vessel, ut(), 30000)
@@ -265,7 +265,7 @@ def main():
     #run the deorbit
     if periapsis > radius * -0.5:
         # deorbit to to PE = -(0.5 * body.radius) # TODO pick where the deorbit burn happens?
-        deorbitPeriapsisHeight = radius * -0.5
+        deorbitPeriapsisHeight = radius * -0.52
         deorbitPeriapsisNode = changePeriapsis(vessel, ut()+300, deorbitPeriapsisHeight)
         deorbit = ExecuteManeuver(connection, vessel, node=deorbitPeriapsisNode)
         display.changeProgram(deorbit)
@@ -293,7 +293,7 @@ def main():
     display.changeProgram(softTouchdown)
     while softTouchdown():
         display()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     vessel.control.throttle = 0.0
     vessel.control.sas = True

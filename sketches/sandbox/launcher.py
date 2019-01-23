@@ -16,7 +16,7 @@ def main():
     vessel = connection.space_center.active_vessel
     ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
-    ascend = Ascend(connection, vessel, 200000)
+    ascend = Ascend(connection, vessel, 500000)
     staging = AutoStage(vessel)
     fairing = Fairing(connection, vessel)
 
@@ -34,8 +34,8 @@ def main():
     while not ascend() and not hasAborted(vessel):
         display()
         staging()
-        fairing()
-        time.sleep(0.1)
+        #fairing()
+        time.sleep(0.05)
 
     if hasAborted(vessel):
         display.addMessage('Good luck!')
@@ -54,7 +54,7 @@ def main():
     while not doManeuver() and not hasAborted(vessel):
         display()
         staging()
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     node.remove()
 
