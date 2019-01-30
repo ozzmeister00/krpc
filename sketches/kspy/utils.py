@@ -1,10 +1,34 @@
+from __future__ import print_function, absolute_import, division
+
+from collections import deque
+from math import cos, radians, sin, degrees, asin, atan2
+import time
+
+import krpc
+
+from . import maths
+
 
 def gHere(body, vessel):
+    """
+
+    :param body: the body the vessel is orbiting
+    :param vessel: the vessel to get the force of gravity on
+
+    :return: the gravity parameter at the vessel's current altitude
+    """
     return body.surface_gravity * (
     body.mass / ((vessel.flight(body.reference_frame).mean_altitude + body.equatorial_radius) ** 2))
 
 
 def fgHere(body, vessel):
+    """
+
+    :param body: the body the vessel is orbiting
+    :param vessel: the vessel to check
+
+    :return: the force of gravity on the input vessel at its current altitude
+    """
     return vessel.mass * gHere(body, vessel)
 
 
@@ -13,6 +37,13 @@ def hasAborted(vessel):
 
 
 def rpyToDirection(pitch, yaw):
+    """
+    Converts the input pitch and yaw values to a XYZ direction value
+
+    :param pitch: pitch in degrees
+    :param yaw: yaw in degrees
+    :return: [X, Y, Z] direction, normalized
+    """
     x = cos(radians(yaw)) * cos(radians(pitch))
     y = sin(radians(yaw)) * cos(radians(pitch))
     z = sin(radians(pitch))
@@ -21,6 +52,12 @@ def rpyToDirection(pitch, yaw):
 
 
 def directionToRPY(direction):
+    """
+    Converts the input [X,Y,Z] direction value to Pitch and Yaw (in degrees)
+
+    :param direction: 3-length list as [X, Y, Z]
+    :return: pitch, yaw in degrees
+    """
     x, y, z = direction
     pitch = degrees(asin(z))
     yaw = degrees(atan2(y, x))
@@ -29,6 +66,10 @@ def directionToRPY(direction):
 
 
 class AutoStage(object):
+    """
+    A class to check and handle the need for autostaging and will return true
+    if the vessel needs to stage based on fuel and engine values
+    """
     def __init__(self, vessel):
         self.vessel = vessel
 
@@ -45,6 +86,10 @@ class AutoStage(object):
 
 
 class Fairing(object):
+    """
+    A class to check and handle the need to deploy fairings, but the fairings need to be
+    tagged "deployFairing"
+    """
     def __init__(self, connection, vessel, deployAtms=0.001):
         flight = vessel.flight(vessel.orbit.body.reference_frame)
         self.atms = connection.add_stream(getattr, flight, 'atmosphere_density')
@@ -69,11 +114,31 @@ class Fairing(object):
             self.deployed = True
 
 
-def clamp(v, minV, maxV):
-    return max(minV, min(v, maxV))
+class Abort(object):
+    """
+    A class to check and handle user-initiated abort sequence, when called
+    will return True or False based on the abort condition of the vessel
+    """
+    def __init__(self, vessel):
+        self.vessel = vessel
+
+    def __call__(self):
+        if self.vessel.control.abort:
+            # disengage the throttle
+            self.vessel.control.throttle = 0.0
+
+            # activate the abort action group
+            self.vessel.control.setAbort(True)
+
+            return True
+
+        return False
 
 
 class PID(object):
+    """
+    My own pid controller
+    """
     def __init__(self, kP=1, kI=0, kD=0, dt=1, cMin=0.0, cMax=1.0):
         self.seekP = 0.0
 
@@ -101,7 +166,7 @@ class PID(object):
         self.ti = clamp(self.ti, self.cMin, self.cMax)
         dInput = currV - self.lastPosition
         output = P * error + self.ti - D * dInput
-        output = clamp(self.ti, self.cMin, self.cMax)
+        output = maths.clamp(self.ti, self.cMin, self.cMax)
 
         self.lastPosition = currV
 

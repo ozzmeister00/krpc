@@ -1,24 +1,11 @@
 """
 Contains functionality to help us execute maneuver nodes
 """
+from __future__ import print_function, absolute_import, division
 
-def thrust_controller(vessel, deltaV):
-    '''
-    This function is somewhat arbitrary in it's working - there's not a 'rule'
-    that I've found on how to feather out throttle towards the end of a burn
-    but given that the chances of overshooting go up with TWR (since we fly
-    in a world with discrete physics frames!) it makes sense to relate the
-    throttle to the TWR for this purpose.
-    '''
-    TWR = vessel.max_thrust / vessel.mass
-    if deltaV < TWR / 3:
-        return .05
-    elif deltaV < TWR / 2:
-        return .1
-    elif deltaV < TWR:
-        return .25
-    else:
-        return 1.0
+import math
+
+from . import utils
 
 
 def calculateBurnTime(vessel, node):
@@ -33,7 +20,15 @@ def calculateBurnTime(vessel, node):
 
 
 def smoothThrottle(vessel, deltaV, t):
-    ISP = vessel.specific_impulse * utils.gHere()
+    """
+    returns a smooth throttle value based on the remaining deltaV of our burn
+
+    :param vessel:
+    :param deltaV:
+    :param t: total burn time(?)
+    :return:
+    """
+    ISP = vessel.specific_impulse * utils.gHere(vessel.orbit.body, vessel)
     m0 = vessel.mass
     m1 = m0 / math.exp(deltaV/ISP)
     F = ((m0 - m1) / t) * ISP
@@ -41,13 +36,10 @@ def smoothThrottle(vessel, deltaV, t):
 
 
 class ExecuteManeuver(utils.Program):
-    def __init__(self, conn, vessel, node=None, tuneTime=2, leadTime=60):
+    def __init__(self, conn, vessel, node, tuneTime=2, leadTime=60):
         super(ExecuteManeuver, self).__init__('Maneuver')
         self.conn = conn
         self.vessel = vessel
-
-        if not node:
-            node = vessel.control.nodes[0]
 
         self.node = node
         self.leadTime = leadTime
@@ -89,13 +81,12 @@ class ExecuteManeuver(utils.Program):
             self.node = None
             return True
 
-        if self.remainingBurnTime > self.tuneTime:
-            self.mode = 'Firing'
-            self.vessel.control.throttle = 1
-        else:
-            self.mode = 'Tuning'
-            self.vessel.control.throttle = max(0.005,
-                                               smoothThrottle(self.vessel, self.remainingBurn()[1], self.tuneTime))
+        # if self.remainingBurnTime > self.tuneTime:
+        #     self.mode = 'Firing'
+        #     self.vessel.control.throttle = 1
+        # else:
+        #     self.mode = 'Tuning'
+        self.vessel.control.throttle = max(0.005, smoothThrottle(self.vessel, self.remainingBurn()[1], self.tuneTime))
 
         return False
 

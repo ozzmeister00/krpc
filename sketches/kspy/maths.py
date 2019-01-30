@@ -1,3 +1,5 @@
+from __future__ import print_function, absolute_import, division
+
 import math
 import numpy as np
 import collections
@@ -5,15 +7,36 @@ import collections
 Vector3 = collections.namedtuple('v3', 'right forward up')
 
 
+def clamp(v, minV, maxV):
+    """
+
+    :param v: value to clamp
+    :param minV: minimum value to clamp to
+    :param maxV: maximum value to clamp to
+    :return: the value V clamped between minV and maxV
+    """
+    return max(minV, min(v, maxV))
+
+
 def normalizeToRange(v, a, b):
+    """
+    Normalizes the input value between a and b
+
+    :param v: value to normalize
+    :param a: minimum value to normalize to
+    :param b: maximum value to normalize to
+    :return: the value v normalized within the range a->b
+    """
     return (v - a) / (b - a)
 
 
+# art whaley
 def unit_vector(vector):
     """ Returns the unit vector of the vector provided.  """
     return vector / np.linalg.norm(vector)
 
 
+# art whaley
 def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2'"""
     v1_u = unit_vector(v1)
@@ -21,54 +44,7 @@ def angle_between(v1, v2):
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 
-def coords_down_bearing(lat, lon, bearing, distance, body):
-    '''
-    Takes a latitude, longitude and bearing in degrees, and a
-    distance in meters over a given body.  Returns a tuple
-    (latitude, longitude) of the point you've calculated.
-    '''
-
-    bearing = math.radians(bearing)
-    R = body.equatorial_radius
-    lat = math.radians(lat)
-    lon = math.radians(lon)
-
-    a = math.sin(lat)
-    b = math.cos(distance / R)
-
-    lat2 = math.asin(math.sin(lat) * math.cos(distance / R) + math.cos(lat) * math.sin(distance / R) * math.cos(bearing))
-
-    lon2 = lon + math.atan2(math.sin(bearing) * math.sin(distance / R) * math.cos(lat), math.cos(distance / R) - math.sin(lat) * math.sin(lat2))
-
-    lat2 = math.degrees(lat2)
-    lon2 = math.degrees(lon2)
-    return (lat2, lon2)
-
-
-def check_terrain(lat1, lon1, lat2, lon2, body):
-    '''
-    Returns an estimate of the highest terrain altitude betwen
-            two latitude / longitude points.
-    '''
-    lat = lat1
-    lon = lon1
-    highest_lat = lat
-    highest_lon = lon
-    highest_alt = body.surface_height(lat, lon)
-    latstep = (lat2 - lat1) / 20
-    lonstep = (lon2 - lon1) / 20
-
-    for x in range(20):
-        test_alt = body.surface_height(lat, lon)
-        if test_alt > highest_alt:
-            highest_lat = lat
-            highest_lon = lon
-            highest_alt = test_alt
-        lat = lat + latstep
-        lon = lon + lonstep
-    return highest_alt
-
-
+# art whaley
 def get_phase_angle(vessel, target):
     '''
     returns the relative phase angle for a hohmann transfer
@@ -84,6 +60,7 @@ def get_phase_angle(vessel, target):
     return a
 
 
+# art whaley
 def orbital_progress(vessel, ut):
     '''
     returns the orbital progress in radians, referenced to the planet's origin
@@ -95,6 +72,7 @@ def orbital_progress(vessel, ut):
     return clamp_2pi(lan + arg_p + ma_ut)
 
 
+# art whaley
 def clamp_2pi(x):
     '''
     clamp radians to a single revolution
@@ -104,6 +82,7 @@ def clamp_2pi(x):
     return x
 
 
+# art whaley
 def v3minus(v, t):
     '''
     vector subtraction
@@ -114,6 +93,7 @@ def v3minus(v, t):
     return (a, b, c)
 
 
+# art whaley
 def dist(v, t):
     '''
     returns distance (magnitude) between two
@@ -127,6 +107,7 @@ def dist(v, t):
     return math.sqrt(a + b + c)
 
 
+# art whaley
 def speed(v, t):
     '''
     returns speed (magnitude) between two
@@ -140,6 +121,7 @@ def speed(v, t):
     return math.sqrt(a + b + c)
 
 
+# art whaley
 def getOffsets(v, t):
     '''
     returns the distance (right, forward, up) between docking ports.
@@ -147,6 +129,7 @@ def getOffsets(v, t):
     return Vector3._make(t.part.position(v.parts.controlling.reference_frame))
 
 
+# art whaley
 def getVelocities(v, t):
     '''
     returns the relative velocities (right, forward, up)

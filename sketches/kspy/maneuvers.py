@@ -1,118 +1,110 @@
 """
 Contains functions that generate maneuver nodes for various orbital operations
 """
+from __future__ import print_function, absolute_import, division
 
 import math
 import time
 
-from .rendevous import target_vminus, target
-from .maths import dist, speed
+import krpc
 
 
-def hohmann_transfer(vessel, target, time):
+def hohmannTransfer(connection=None, vessel=None, target=None):
     '''
-    Create a maneuver node for a hohmann transfer from vessel orbit to target
+    Create a maneuver node for a hohmann transfer from vessel's orbit to target
     orbit at the given time
 
+    :param connection:
     :param vessel:
     :param target:
-    :param time:
+    :param atTime:
 
     :return: the node created for the hohmann transfer
     '''
-    body = vessel.orbit.body
-    GM = body.gravitational_parameter
-    r1 = vessel.orbit.radius_at(time)
-    SMA_i = vessel.orbit.semi_major_axis
-    SMA_t = (vessel.orbit.apoapsis + target.orbit.apoapsis) / 2
-    v1 = math.sqrt(GM * ((2 / r1) - (1 / SMA_i)))
-    v2 = math.sqrt(GM * ((2 / r1) - (1 / (SMA_t))))
-    dv = v2 - v1
-    return vessel.control.add_node(time, prograde=dv)
+    if not connection:
+        connection = krpc.connect("hohmannTransfer")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+    if not target:
+        # grab whatever target is currently set
+        target = connection.space_center.target_vessel or connection.space_center.target_body
+
+    # get phase angle
+    # time transfer
+    # changeApoapsisAtTime
+
+    return changeApoapsis(target.orbit.apoapsis, connection, vessel)
 
 
-# TODO we can expand this out to At Time, At Periapsis, and At Apoapsis
-def circularize_at_apoapsis(vessel, ut):
+def matchPlanes(connection=None, vessel=None, target=None):
     """
-    Create a maneuver node to circularize orbit at given time
+    Plot a maneuver to match planes with the input target at the earliest ascending/descending node
 
+    :param connection: the connection
+    :param vessel: the vessel
+    :param target: the target body or vessel
+    :return: the newly-created maneuver node
+    """
+    if not connection:
+        connection = krpc.connect("MatchPlanes")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+    if not target:
+        # TODO convenience function
+        target = connection.space_center.target_vessel or connection.space_center.target_body
+
+    if vessel.orbit.relative_inclination(target.orbit) < 0.004363323129985824:  # .25 degree
+        return
+
+    # figure out if AN or DN is soonest.   Since Script assumes circular orbits
+    # it doesn't worry about which is highest (cheapest burn).
+    ut_an = vessel.orbit.ut_at_true_anomaly(vessel.orbit.true_anomaly_at_an(target.orbit))
+    ut_dn = vessel.orbit.ut_at_true_anomaly(vessel.orbit.true_anomaly_at_dn(target.orbit))
+
+    ascending = ut_an < ut_dn
+
+    return changeInclination(target.orbit.inclination,
+                             connection=connection,
+                             vessel=vessel,
+                             ascendingNode=ascending)
+
+
+def circularizeAtApoapsis(connection=None, vessel=None):
+    """
+    Convenience function to return a node circularizing the current vessel's orbit at apoapsis
+
+    :param connection: the target connection
+    :param vessel: the current vessel
+    :return: the newly created node
+    """
+    return changePeriapsis(vessel.orbit.apoapsis_altitude, connection=connection, vessel=vessel)
+
+
+def circularizeAtPeriapsis(connection=None, vessel=None):
+    """
+    Convenience function to return a node circularizing the current vessel's orbit at periapsis
+
+    :param connection: the target connection
+    :param vessel: the current vessel
+    :return: the newly created node
+    """
+    return changePeriapsis(vessel.orbit.periapsis_altitude, connection=connection, vessel=vessel)
+
+
+def changePeriapsis(targetAltitude, connection=None, vessel=None):
+    """
+    Change the periapsis of the input vessel on the input connection to the input altitude
+
+    :param targetAltitude: above the surface of the current body
+    :param connection:
     :param vessel:
-    :param ut:
-
-    :returns: the node created
+    :return: the node created to change periapsis
     """
-    body = vessel.orbit.body
-    GM = body.gravitational_parameter
-    v1 = math.sqrt(GM * ((2 / vessel.orbit.apoapsis) - (1 / vessel.orbit.semi_major_axis)))
-    v2 = math.sqrt(GM * ((2 / vessel.orbit.apoapsis) - (1 / vessel.orbit.apoapsis)))
-    dv = v2 - v1
-    time = vessel.orbit.time_to_apoapsis + ut
-    return vessel.control.add_node(time, prograde=dv)
+    if not connection:
+        connection = krpc.connect("ChangePeriapsis")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
 
-
-def matchv(sc, v, t):
-    '''
-    function to match active vessel's velocity to target's at the
-    point of closest approach
-    '''
-
-    # Calculate the length and start of burn
-    m = v.mass
-    isp = v.specific_impulse
-    dv = speed(v, t)
-    F = v.available_thrust
-    G = 9.81
-    burn_time = (m - (m / math.exp(dv / (isp * G)))) / (F / (isp * G))
-
-    ## Orient vessel to negative target relative velocity
-    ap = v.auto_pilot
-    ap.engage()
-    ap.target_direction = target_vminus(v, t)
-    ap.wait()
-
-    # wait for the time to burn
-    burn_start = v.orbit.time_of_closest_approach(t.orbit) - (burn_time / 1.9)
-    sc.warp_to(burn_start - 10)
-    while sc.ut < burn_start:
-        ap.target_direction = target_vminus(v, t)
-        time.sleep(.5)
-    # burn
-    while speed(v, t) > .1:
-        ap.target_direction = target_vminus(v, t)
-        v.control.throttle = speed(v, t) / 20.0
-
-    # restore user control
-    v.control.throttle = 0.0
-    ap.disengage()
-
-
-def close_dist(sc, v, t):
-    '''
-    Function to close distance between active and target vessels.
-    Sets approach speed to 1/200 of separation at time of burn.
-    '''
-    print ("Closing Distance...")
-
-    # orient vessel to target
-    ap = v.auto_pilot
-    ap.engage()
-    time.sleep(.1)
-    ap.target_direction = target(v, t)
-    time.sleep(.1)
-    ap.wait()
-
-    # calculate and burn
-    targetspeed = dist(v, t) / 200.0
-    while targetspeed - speed(v, t) > .1:
-        ap.target_direction = target(v, t)
-        v.control.throttle = (targetspeed - speed(v, t)) / 20.0
-
-    # restore user control
-    v.control.throttle = 0.0
-    ap.disengage()
-
-
-def changePeriapsis(vessel, ut, targetAltitude):
     mu = vessel.orbit.body.gravitational_parameter
 
     # where we're starting
@@ -127,11 +119,25 @@ def changePeriapsis(vessel, ut, targetAltitude):
 
     deltaV = v2 - v1
 
-    node = vessel.control.add_node(ut + vessel.orbit.time_to_apoapsis, prograde=deltaV)
+    node = vessel.control.add_node(connection.space_center.ut + vessel.orbit.time_to_apoapsis, prograde=deltaV)
 
     return node
 
-def changeApoapsis(vessel, ut, targetAltitude):
+
+def changeApoapsis(targetAltitude, connection=None, vessel=None):
+    """
+    Change the apoapsis of the input vessel on the input connection to the input altitude
+
+    :param targetAltitude: above the surface of the current body
+    :param connection:
+    :param vessel:
+    :return: the node created to change apoapsis
+    """
+    if not connection:
+        connection = krpc.connect("ChangeApoapsis")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
     mu = vessel.orbit.body.gravitational_parameter
 
     # where we're starting
@@ -146,6 +152,39 @@ def changeApoapsis(vessel, ut, targetAltitude):
 
     deltaV = v2 - v1
 
-    node = vessel.control.add_node(ut + vessel.orbit.time_to_periapsis, prograde=deltaV)
+    node = vessel.control.add_node(connection.space_center.ut + vessel.orbit.time_to_periapsis, prograde=deltaV)
 
     return node
+
+
+def changeInclination(newInclination, connection=None, vessel=None, ascendingNode=True):
+    """
+    Plot a maneuver to change the inclination of the input vessel to the new inclination angle
+
+    :param connection: connection to operate upon
+    :param vessel: vessel to plot for
+    :param newInclination: the angle to incline to
+    :param ascendingNode: if the node should happen at the ascending node, if False will plot for the descending node
+
+    :return: the new node
+    """
+    if not connection:
+        connection = krpc.connect("changeInclination")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
+    if ascendingNode:
+        nodeUT = (vessel.orbit.time_to_apoapsis / 2) + connection.space_center.ut
+    else:
+        nodeUT = (vessel.orbit.time_to_periapsis / 2) + connection.space_center.ut
+
+    # calculate plane change burn
+    orbitalSpeed = vessel.orbit.orbital_speed_at(time)
+    inc = vessel.orbit.inclination - newInclination
+    normal = orbitalSpeed * math.sin(inc)
+    prograde = orbitalSpeed * math.cos(inc) - orbitalSpeed
+
+    if ascendingNode:
+        normal *= -1  # antinormal at ascending node
+
+    return vessel.control.add_node(nodeUT, normal=normal, prograde=prograde)

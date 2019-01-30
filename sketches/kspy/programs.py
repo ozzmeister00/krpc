@@ -1,97 +1,218 @@
 """
 This file should contain all the programs that we can run from the console
 """
+from __future__ import print_function, absolute_import, division
 
-def getConnection():
-    connection = krpc.connect()
-    # connection = krpc.connect(address='192.168.1.64',
-    #                            stream_port=50001,
-    #                            rpc_port=50000)
+import sys
+import time
 
-    return connection
+import krpc
 
-def ExecuteNextManeuver():
-    doManeuver = ExecuteManeuver(connection, vessel, tuneTime=20)
-    autostage = AutoStage(vessel)
+from .maneuvers import changePeriapsis, changeApoapsis
+from .launch import Ascend
+from .node import ExecuteManeuver
+from .utils import AutoStage, Fairing, Abort
+from . import landing
+from . import rendevous
+from . import docking
+from .pid import PID
+from . import maths
+from . import maneuvers
 
-    while not doManeuver():
-        # autostage()
+
+# art whaley
+def Dock(conn, speed_limit=1.0):
+    """
+    Art Whaley's docking function
+
+    :param conn: connection to start with
+    :param speed_limit: maximum speed in m/s
+
+    :return: None, this will crash out on success
+    """
+    # Setup KRPC
+    sc = conn.space_center
+    v = sc.active_vessel
+    t = sc.target_docking_port
+    ap = v.auto_pilot
+    rf = v.orbit.body.reference_frame
+
+    # Setup Auto Pilot
+    ap.reference_frame = rf
+    ap.target_direction = tuple(x * -1 for x in t.direction(rf))
+    ap.engage()
+
+    # create PIDs
+    upPID = PID(.75, .25, 1)
+    rightPID = PID(.75, .25, 1)
+    forwardPID = PID(.75, .2, .5)
+
+    proceed = False
+    # 'proceed' is a flag that signals that we're lined up and ready to dock.
+    # Otherwise the program will try to line up 10m from the docking port.
+
+    # LineUp and then dock  - in the same loop with 'proceed' controlling whether
+    # we're headed for the 10m safe point, or headed forward to dock.
+    while True:
+        offset = maths.getOffsets(v, t)  # grab data and compute setpoints
+        velocity = maths.getVelocities(v, t)
+        if docking.proceedCheck(offset):  # Check whether we're lined up and ready to dock
+            proceed = True
+
+        setpoints = docking.getSetpoints(offset, proceed, speed_limit)
+
+        upPID.setpoint(setpoints.up)  # set PID setpoints
+        rightPID.setpoint(setpoints.right)
+        forwardPID.setpoint(setpoints.forward)
+
+        v.control.up = -upPID.update(velocity.up)  # steer vessel
+        v.control.right = -rightPID.update(velocity.right)
+        v.control.forward = -forwardPID.update(velocity.forward)
+
+        time.sleep(.05)
+
+
+def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False):
+    """
+    Attempts to execute the next maneuver node for the input vessel and connection
+
+    :param connection:
+    :param vessel:
+    :param autoStage: if the vessel should automatically trigger the next stage
+
+    :return: success of the operation
+    """
+    if not connection:
+        connection = krpc.connect("ExecuteNextManeuver")
+
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
+    if not node:
+        node = vessel.control.nodes[0]
+
+    doManeuver = ExecuteManeuver(connection, vessel, node, tuneTime=20)
+    autoStager = AutoStage(vessel)
+    aborter = Abort(vessel)
+
+    while not doManeuver() and not aborter():
+        if autoStage:
+            autoStager()
+
         time.sleep(0.05)
 
     vessel.control.sas = True
     vessel.control.throttle = 0.0
 
-def Launch():
-    # todo make a conneciton utility so I only ever have to define that in one file
-    connection = getConnection()
-    vessel = connection.space_center.active_vessel
+    # remove the node!
+    node.remove()
+
+    return aborter()
+
+
+def Launch(connection=None,
+           vessel=None,
+           altitude=250000,
+           inclination=0.0,
+           argumentOfPeriapsis=None,
+           argumentOfAscendingNode=None,
+           autoStage=True,
+           fairing=True):
+    """
+    Launches the input vessel on the input connection to the input altitude, inclination, argument of periapsis/ascending node
+
+    :param connection: conneciton to operate upon
+    :param vessel: vessel to operate upon
+    :param altitude: target circular altitude
+    :param inclination: target inclination
+    :param argumentOfPeriapsis: where the argument of periapsis should be for our target orbit
+    :param argumentOfAscendingNode: where the argument of ascending node should be for our target orbit
+    :param autoStage: if we should autostage the vessel
+    :param fairing: if we should attempt to deploy fairings on the vessel
+    :return:
+    """
+    if not connection:
+        connection = krpc.connect("Launch")
+
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
     ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
-    ascend = Ascend(connection, vessel, 500000)
+    ascend = Ascend(connection, vessel, targetAltitude=altitude)
+    aborter = Abort(vessel)
     staging = AutoStage(vessel)
     fairing = Fairing(connection, vessel)
 
     for i in range(3, 0, -1):
         time.sleep(1)
 
-    display.addMessage('Launch!')
-
     vessel.control.activate_next_stage()
 
-    while not ascend() and not hasAborted(vessel):
-        display()
-        staging()
-        fairing()
+    while not ascend() and aborter():
+
+        if autoStage:
+            staging()
+
+        if fairing:
+            fairing()
+
         time.sleep(0.1)
 
-    if hasAborted(vessel):
-        display.addMessage('Good luck!')
-        sys.exit(1)
+    if aborter():
+        vessel.control.throttle = 0.0
+        return False
 
     vessel.control.throttle = 0.0
 
     time.sleep(1)
 
-    display.addMessage('Circularizing')
     node = changePeriapsis(vessel, ut(), vessel.orbit.apoapsis_altitude)
-    doManeuver = ExecuteManeuver(connection, vessel, node=node, tuneTime=5, leadTime=60)
+    ExecuteNextManeuver(connection, vessel, node)
 
-    display.changeProgram(doManeuver)
+    return aborter()
 
-    while not doManeuver() and not hasAborted(vessel):
-        display()
-        staging()
-        time.sleep(0.05)
 
-    node.remove()
+def Hover(connection=None, vessel=None):
+    """
+    Puts the vessel into a user-controlled hovering mode
 
-    display.addMessage('Welcome to space!')
-    display.changeProgram(None)
+    :param connection: connection to operate upon
+    :param vessel: vessel to hover
+    """
+    if not connection:
+        connection = krpc.connect("Hover")
 
-def Hover():
-    connection = krpc.connect("Hover")
-    vessel = connection.space_center.active_vessel
-    hover = Hover(connection, vessel)
-    display = Display(connection, vessel, program=hover)
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+    hover = landing.Hover(connection, vessel)
 
     if not vessel.available_thrust:
         vessel.control.activate_next_stage()
 
     while hover():
-        display()
         time.sleep(0.01)
 
     vessel.control.throttle = 0.0
     vessel.control.sas = True
 
-def LandAnywhere():
-    connection = krpc.connect("Landing")
-    vessel = connection.space_center.active_vessel
-    flight = vessel.flight(vessel.orbit.body.reference_frame)
-    display = Display(connection, vessel)
-    ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
-    display()
+def LandAnywhere(connection=None, vessel=None):
+    """
+    Attempts to land the vessel on the input connection softly somewhere on its current orbiting body
+
+    TODO Handle aborts
+
+    :param connection: connection to operate on
+    :param vessel: vessel to land
+    """
+    if not connection:
+        connection = krpc.connect("Landing")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
+    flight = vessel.flight(vessel.orbit.body.reference_frame)
+    ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
     surface_altitude = connection.add_stream(getattr, flight, 'surface_altitude')
 
@@ -103,24 +224,16 @@ def LandAnywhere():
     periapsis = vessel.orbit.periapsis_altitude
 
     if periapsis > 31000:
-        display.addMessage("Lowering Periapsis")
-        display()
         # get ourselves into a 30km x 30km parking orbit
         lowerPeriapsisNode = changePeriapsis(vessel, ut(), 30000)
         lowerPeriapsis = ExecuteManeuver(connection, vessel, node=lowerPeriapsisNode)
-        display.changeProgram(lowerPeriapsis)
         while not lowerPeriapsis():
-            display()
             time.sleep(0.01)
 
     if apoapsis > 31000:
-        display.addMessage("Lowering Apoapsis")
-        display()
         lowerApoapsisNode = changeApoapsis(vessel, ut(), 30000)
         lowerApoapsis = ExecuteManeuver(connection, vessel, node=lowerApoapsisNode)
-        display.changeProgram(lowerApoapsis)
         while not lowerApoapsis():
-            display()
             time.sleep(0.01)
 
     #run the deorbit
@@ -129,156 +242,85 @@ def LandAnywhere():
         deorbitPeriapsisHeight = radius * -0.5
         deorbitPeriapsisNode = changePeriapsis(vessel, ut()+300, deorbitPeriapsisHeight)
         deorbit = ExecuteManeuver(connection, vessel, node=deorbitPeriapsisNode)
-        display.changeProgram(deorbit)
-        display.addMessage("Deorbit burn")
         while not deorbit():
-            display()
             time.sleep(0.01)
 
     # TODO is warping to descend?
 
     # hoverslam
-    descend = Descend(vessel, connection)
-    display.changeProgram(descend)
-    display.addMessage("Hoverslam")
-    display()
+    descend = landing.Descend(vessel, connection)
     while descend():
-        display()
         time.sleep(0.01)
 
-    display.addMessage("moving to soft landing")
-    display()
-
     vessel.control.gear = True
-    softTouchdown = SoftTouchdown(vessel, connection)
-    display.changeProgram(softTouchdown)
+    softTouchdown = landing.SoftTouchdown(vessel, connection)
     while softTouchdown():
-        display()
         time.sleep(0.1)
 
     vessel.control.throttle = 0.0
     vessel.control.sas = True
     vessel.auto_pilot.disengage()
 
-    display.addMessage("landed")
-    display()
+    return True
 
 
-def InsightLanding():
-    def vessel():
-        return conn.space_center.active_vessel
+def SoftLanding(connection=None, vessel=None):
+    """
+    Attempts to softly land the input vessel on the input connection
+    assuming it is on a suborbital trajectory
 
-    conn = krpc.connect("Insight")
+    :param connection: connection to operate upon
+    :param vessel: vessel to operate upon
+    :return:
+    """
+    if not connection:
+        connection = krpc.connect("Landing")
 
-    drogues = vessel().parts.with_tag("drogue")
-    mains = vessel().parts.with_tag("main")
-    heatshield = vessel().parts.with_tag("heatShield")[0]
-    fairingSep = vessel().parts.with_tag("fairingSep")
-    cruiseSep = vessel().parts.with_tag("cruiseSep")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
 
-    #vessel.auto_pilot.reference_frame = vessel.reference_frame
-    vessel().auto_pilot.engage()
-    # point at sun until 50000 meters
-    sun = conn.space_center.bodies['Sun']
-
-    # this doesn't quite point right, but we're getting what we need out of it
-    print("waiting until 60000m")
-    while vessel().flight().mean_altitude > 60000:
-        rf = vessel().reference_frame
-        pos = sun.position(rf)
-        vessel().auto_pilot.target_direction = pos
-        time.sleep(0.05)
-
-    print("decoupling cruise stage")
-    # deploy cruise stage
-    for part in cruiseSep:
-        part.decoupler.decouple()
-
-    print("pointing retrograde")
-    # point retrograde
-    vessel().auto_pilot.target_direction = vessel().flight().retrograde
-
-    print("waiting until we're out of plasma")
-    # wait until heatshield thermal flux is less than 0
-    isOutOfPlasma = False
-    underAltitude = False
-    while not isOutOfPlasma and not underAltitude:
-        underAltitude = vessel().flight().mean_altitude < 15000.0
-        isOutOfPlasma = heatshield.thermal_convection_flux < 0.0
-        time.sleep(0.05)
-
-    next = vessel().flight().mean_altitude - 1000
-
-    print("waiting until a bit more")
-    while vessel().flight().surface_altitude > next:
-        time.sleep(0.05)
-
-    print("decoupling heat shield")
-    heatshield.decoupler.decouple()
-
-    print("deploying drouges")
-    for drogue in drogues:
-        if drogue.parachute:
-            drogue.parachute.deploy()
-
-    print("waiting until 2500")
-    while vessel().flight().surface_altitude > 2500.0:
-        print(vessel().flight().surface_altitude)
-        time.sleep(0.1)
-
-    print("deploying mains")
-    for m in mains:
-        m.parachute.deploy()
-
-    print("waiting until 1000m")
-    while vessel().flight().surface_altitude > 2000.0:
-        time.sleep(0.05)
-
-    print("separating fairing stage'")
-    for i in fairingSep:
-        if i.fairing:
-            i.fairing.jettison()
-        elif i.decoupler:
-            i.decoupler.decouple()
-        elif i.engine:
-            i.engine.active = True
-        else:
-            print("What is a {}".format(i.name))
-
-    # fire the engines!
-    vessel().control.activate_next_stage()
-
-    softLanding()
-
-def SoftLanding():
-    connection = krpc.connect("Landing")
-    vessel = connection.space_center.active_vessel
-
-    descend = Descend(vessel, connection)
-    print("descending under suicide burn")
+    descend = landing.Descend(vessel, connection)
     while descend():
         time.sleep(0.01)
 
     vessel.control.gear = True
-    softTouchdown = SoftTouchdown(vessel, connection)
-    print("activating soft touchdown")
+    softTouchdown = landing.SoftTouchdown(vessel, connection)
     while softTouchdown():
         time.sleep(0.01)
 
-    print("touchdown")
     vessel.control.throttle = 0.0
     vessel.control.sas = True
     vessel.auto_pilot.disengage()
 
-def RendevousWithTarget():
-    conn = getConnection()
-    sc = conn.space_center
-    v = conn.space_center.active_vessel
-    t = conn.space_center.target_vessel
-    # t = conn.space_center.target_body
+    return True
 
-    match_planes(conn)
-    hohmann(conn)
-    circularize_at_intercept(conn)
-    get_closer(conn)
-    print ("Rendezvous Complete.")
+
+def RendevousWithTarget(connection=None, vessel=None):
+    # TODO all of these below need to be programs
+    if not connection:
+        connection = krpc.connect("Rendevous")
+
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
+    targetVessel = connection.space_center.target_vessel
+    targetBody = connection.space_center.target_body
+
+    target = targetVessel if targetVessel else targetBody
+    # we can detect if we're targeting a vessel or a body
+
+    matchPlanes = maneuvers.matchPlanes(connection, vessel, target)
+    ExecuteNextManeuver(connection, vessel, matchPlanes)
+
+    hohmannTransfer = maneuvers.hohmannTransfer(connection, vessel, target)
+    ExecuteNextManeuver(connection, vessel, hohmannTransfer)
+
+    if targetVessel:
+        circularize = maneuvers.circularizeAtApoapsis(connection, vessel)
+        ExecuteNextManeuver(connection, vessel, circularize)
+
+        # let Art take control here
+        rendevous.get_closer(connection)
+    else:
+        # TODO figure out what to do if we're targeting a body
+        pass
