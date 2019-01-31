@@ -9,6 +9,9 @@ from . import utils
 
 
 def calculateBurnTime(vessel, node):
+    if not vessel.available_thrust:
+        return -1
+
     F = vessel.available_thrust
     Isp = vessel.specific_impulse * vessel.orbit.body.gravitational_parameter
     m0 = vessel.mass
@@ -74,10 +77,14 @@ class ExecuteManeuver(utils.Program):
 
         self.remainingBurnTime = calculateBurnTime(self.vessel, self.node)
 
+        # for safety, let autostaging takeover here
+        if self.remainingBurnTime == -1:
+            return False
+
         if self.remainingBurn()[1] <= 1.0 or utils.hasAborted(self.vessel):
             self.mode = 'Done'
             self.vessel.control.throttle = 0.0
-            self.node.remove()
+            #self.node.remove()
             self.node = None
             return True
 

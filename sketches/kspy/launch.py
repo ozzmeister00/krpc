@@ -40,14 +40,18 @@ class Ascend(utils.Program):
     def __call__(self):
         # TODO conditional calls make it hard to send messages to the message queue
         if self.altitude() < self.turnStartAltitude:
+            print("straight up")
             self.autoPilot.target_pitch_and_heading(90, 90)
         elif self.turnStartAltitude < self.altitude() and self.altitude() < self.turnEndAltitude:
+            print("gravity turn")
             frac = maths.normalizeToRange(self.altitude(), self.turnStartAltitude, self.turnEndAltitude)
             self.autoPilot.target_pitch_and_heading(90 * (1-frac), 90)
         else:
+            print("horizontal")
             self.autoPilot.target_pitch_and_heading(0, 90)
 
         if self.apoapsis() > self.targetAltitude:
+            print("we done!")
             self.vessel.control.throttle = 0.0
             self.autoPilot.disengage()
             return True

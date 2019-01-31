@@ -13,6 +13,8 @@ from .utils import hasAborted, Program, rpyToDirection
 from .maths import clamp
 
 
+# https://www.reddit.com/r/Kos/comments/45amle/landing_at_target/
+
 def getLandingReferenceFrame(landingLongitude, landingLatitude, landingAltitude=None, connection=None, vessel=None, body=None):
     """
     Constructs a reference frame object based on the vessel, body, and landing lat/long we're aiming for

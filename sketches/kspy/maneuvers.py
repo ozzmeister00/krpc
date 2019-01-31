@@ -8,16 +8,18 @@ import time
 
 import krpc
 
+from . import maths
+from . import rendevous
+
 
 def hohmannTransfer(connection=None, vessel=None, target=None):
     '''
     Create a maneuver node for a hohmann transfer from vessel's orbit to target
-    orbit at the given time
+    orbit at the appropriate time of closest approach
 
     :param connection:
     :param vessel:
     :param target:
-    :param atTime:
 
     :return: the node created for the hohmann transfer
     '''
@@ -29,11 +31,10 @@ def hohmannTransfer(connection=None, vessel=None, target=None):
         # grab whatever target is currently set
         target = connection.space_center.target_vessel or connection.space_center.target_body
 
-    # get phase angle
-    # time transfer
-    # changeApoapsisAtTime
+    phase_angle = maths.get_phase_angle(vessel, target)
+    transfer_time = rendevous.time_transfer(vessel, target, connection.space_center.ut, phase_angle)
 
-    return changeApoapsis(target.orbit.apoapsis, connection, vessel)
+    return changeApoapsis(target.orbit.apoapsis_altitude, connection, vessel, atTime=transfer_time)
 
 
 def matchPlanes(connection=None, vessel=None, target=None):
@@ -62,11 +63,16 @@ def matchPlanes(connection=None, vessel=None, target=None):
     ut_dn = vessel.orbit.ut_at_true_anomaly(vessel.orbit.true_anomaly_at_dn(target.orbit))
 
     ascending = ut_an < ut_dn
+    if ascending:
+        atTime = ut_an
+    else:
+        atTime = ut_dn
 
     return changeInclination(target.orbit.inclination,
                              connection=connection,
                              vessel=vessel,
-                             ascendingNode=ascending)
+                             ascendingNode=ascending,
+                             atTime=atTime)
 
 
 def circularizeAtApoapsis(connection=None, vessel=None):
@@ -91,7 +97,7 @@ def circularizeAtPeriapsis(connection=None, vessel=None):
     return changePeriapsis(vessel.orbit.periapsis_altitude, connection=connection, vessel=vessel)
 
 
-def changePeriapsis(targetAltitude, connection=None, vessel=None):
+def changePeriapsis(targetAltitude, connection=None, vessel=None, atTime=None):
     """
     Change the periapsis of the input vessel on the input connection to the input altitude
 
@@ -104,6 +110,8 @@ def changePeriapsis(targetAltitude, connection=None, vessel=None):
         connection = krpc.connect("ChangePeriapsis")
     if not vessel:
         vessel = connection.space_center.active_vessel
+    if not atTime:
+        atTime = connection.space_center.ut + vessel.orbit.time_to_apoapsis
 
     mu = vessel.orbit.body.gravitational_parameter
 
@@ -119,12 +127,12 @@ def changePeriapsis(targetAltitude, connection=None, vessel=None):
 
     deltaV = v2 - v1
 
-    node = vessel.control.add_node(connection.space_center.ut + vessel.orbit.time_to_apoapsis, prograde=deltaV)
+    node = vessel.control.add_node(atTime, prograde=deltaV)
 
     return node
 
 
-def changeApoapsis(targetAltitude, connection=None, vessel=None):
+def changeApoapsis(targetAltitude, connection=None, vessel=None, atTime=None):
     """
     Change the apoapsis of the input vessel on the input connection to the input altitude
 
@@ -137,6 +145,8 @@ def changeApoapsis(targetAltitude, connection=None, vessel=None):
         connection = krpc.connect("ChangeApoapsis")
     if not vessel:
         vessel = connection.space_center.active_vessel
+    if not atTime:
+        atTime = connection.space_center.ut + vessel.orbit.time_to_periapsis
 
     mu = vessel.orbit.body.gravitational_parameter
 
@@ -152,12 +162,12 @@ def changeApoapsis(targetAltitude, connection=None, vessel=None):
 
     deltaV = v2 - v1
 
-    node = vessel.control.add_node(connection.space_center.ut + vessel.orbit.time_to_periapsis, prograde=deltaV)
+    node = vessel.control.add_node(atTime, prograde=deltaV)
 
     return node
 
 
-def changeInclination(newInclination, connection=None, vessel=None, ascendingNode=True):
+def changeInclination(newInclination, connection=None, vessel=None, ascendingNode=True, atTime=None):
     """
     Plot a maneuver to change the inclination of the input vessel to the new inclination angle
 
@@ -173,13 +183,16 @@ def changeInclination(newInclination, connection=None, vessel=None, ascendingNod
     if not vessel:
         vessel = connection.space_center.active_vessel
 
-    if ascendingNode:
-        nodeUT = (vessel.orbit.time_to_apoapsis / 2) + connection.space_center.ut
+    if atTime:
+        nodeUT = atTime
     else:
-        nodeUT = (vessel.orbit.time_to_periapsis / 2) + connection.space_center.ut
+        if ascendingNode:
+            nodeUT = (vessel.orbit.time_to_apoapsis / 2) + connection.space_center.ut
+        else:
+            nodeUT = (vessel.orbit.time_to_periapsis / 2) + connection.space_center.ut
 
     # calculate plane change burn
-    orbitalSpeed = vessel.orbit.orbital_speed_at(time)
+    orbitalSpeed = vessel.orbit.orbital_speed_at(nodeUT)
     inc = vessel.orbit.inclination - newInclination
     normal = orbitalSpeed * math.sin(inc)
     prograde = orbitalSpeed * math.cos(inc) - orbitalSpeed

@@ -95,7 +95,12 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
     autoStager = AutoStage(vessel)
     aborter = Abort(vessel)
 
+    # pre-check this
+    if autoStage:
+        autoStager()
+
     while not doManeuver() and not aborter():
+        print("executing maneuver")
         if autoStage:
             autoStager()
 
@@ -149,8 +154,7 @@ def Launch(connection=None,
 
     vessel.control.activate_next_stage()
 
-    while not ascend() and aborter():
-
+    while not ascend() and not aborter():
         if autoStage:
             staging()
 
@@ -167,8 +171,8 @@ def Launch(connection=None,
 
     time.sleep(1)
 
-    node = changePeriapsis(vessel, ut(), vessel.orbit.apoapsis_altitude)
-    ExecuteNextManeuver(connection, vessel, node)
+    node = maneuvers.circularizeAtApoapsis(connection, vessel)
+    ExecuteNextManeuver(connection, vessel, node, autoStage=autoStage)
 
     return aborter()
 
@@ -225,13 +229,13 @@ def LandAnywhere(connection=None, vessel=None):
 
     if periapsis > 31000:
         # get ourselves into a 30km x 30km parking orbit
-        lowerPeriapsisNode = changePeriapsis(vessel, ut(), 30000)
+        lowerPeriapsisNode = changePeriapsis(30000, connection, vessel)
         lowerPeriapsis = ExecuteManeuver(connection, vessel, node=lowerPeriapsisNode)
         while not lowerPeriapsis():
             time.sleep(0.01)
 
     if apoapsis > 31000:
-        lowerApoapsisNode = changeApoapsis(vessel, ut(), 30000)
+        lowerApoapsisNode = changeApoapsis(30000, connection, vessel)
         lowerApoapsis = ExecuteManeuver(connection, vessel, node=lowerApoapsisNode)
         while not lowerApoapsis():
             time.sleep(0.01)
@@ -239,7 +243,7 @@ def LandAnywhere(connection=None, vessel=None):
     #run the deorbit
     if periapsis > radius * -0.5:
         # deorbit to to PE = -(0.5 * body.radius) # TODO pick where the deorbit burn happens?
-        deorbitPeriapsisHeight = radius * -0.5
+        deorbitPeriapsisHeight = radius * -0.5 # TODO this is gonna be broken
         deorbitPeriapsisNode = changePeriapsis(vessel, ut()+300, deorbitPeriapsisHeight)
         deorbit = ExecuteManeuver(connection, vessel, node=deorbitPeriapsisNode)
         while not deorbit():
