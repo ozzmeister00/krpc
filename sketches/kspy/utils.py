@@ -9,6 +9,17 @@ import krpc
 from . import maths
 
 
+def defaultConnection(connectionName):
+    """
+    modify the default connection here
+
+    :param connectionName:
+    :return:
+    """
+    return krpc.connect(connectionName)
+    #return krpc.connect(connectionName, '10.10.16.46', 50000, 50001)
+
+
 def gHere(body, vessel):
     """
 
@@ -82,6 +93,7 @@ class AutoStage(object):
             if engine and engine.active and engine.has_fuel:
                 return
 
+        print("STAGING")
         self.vessel.control.activate_next_stage()
 
 
@@ -106,6 +118,7 @@ class Fairing(object):
 
     def __call__(self):
         if self.atms() <= self.deployAtms and not self.deployed:
+            print("Deploying fairings!")
             for fairing in self.fairings:
                 try:
                     fairing.fairing.jettison()

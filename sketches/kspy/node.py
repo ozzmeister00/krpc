@@ -81,7 +81,7 @@ class ExecuteManeuver(utils.Program):
         if self.remainingBurnTime == -1:
             return False
 
-        if self.remainingBurn()[1] <= 1.0 or utils.hasAborted(self.vessel):
+        if self.remainingBurn()[1] <= 0.1:
             self.mode = 'Done'
             self.vessel.control.throttle = 0.0
             #self.node.remove()

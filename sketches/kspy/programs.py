@@ -11,7 +11,7 @@ import krpc
 from .maneuvers import changePeriapsis, changeApoapsis
 from .launch import Ascend
 from .node import ExecuteManeuver
-from .utils import AutoStage, Fairing, Abort
+from .utils import AutoStage, Fairing, Abort, defaultConnection
 from . import landing
 from . import rendevous
 from . import docking
@@ -83,7 +83,7 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
     :return: success of the operation
     """
     if not connection:
-        connection = krpc.connect("ExecuteNextManeuver")
+        connection = defaultConnection("ExecuteNextManeuver")
 
     if not vessel:
         vessel = connection.space_center.active_vessel
@@ -93,13 +93,15 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
 
     doManeuver = ExecuteManeuver(connection, vessel, node, tuneTime=20)
     autoStager = AutoStage(vessel)
-    aborter = Abort(vessel)
+    #aborter = Abort(vessel)
 
     # pre-check this
     if autoStage:
         autoStager()
 
-    while not doManeuver() and not aborter():
+    #vessel.control.abort = False
+
+    while not doManeuver():  # and not aborter():
         print("executing maneuver")
         if autoStage:
             autoStager()
@@ -112,13 +114,14 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
     # remove the node!
     node.remove()
 
-    return aborter()
+    return True  # aborter()
 
 
 def Launch(connection=None,
            vessel=None,
            altitude=250000,
            inclination=0.0,
+           targetHeading=90,
            argumentOfPeriapsis=None,
            argumentOfAscendingNode=None,
            autoStage=True,
@@ -137,14 +140,14 @@ def Launch(connection=None,
     :return:
     """
     if not connection:
-        connection = krpc.connect("Launch")
+        connection = defaultConnection("Launch")
 
     if not vessel:
         vessel = connection.space_center.active_vessel
 
     ut = connection.add_stream(getattr, connection.space_center, 'ut')
 
-    ascend = Ascend(connection, vessel, targetAltitude=altitude)
+    ascend = Ascend(connection, vessel, targetAltitude=altitude, targetHeading=targetHeading)
     aborter = Abort(vessel)
     staging = AutoStage(vessel)
     fairing = Fairing(connection, vessel)
@@ -174,6 +177,9 @@ def Launch(connection=None,
     node = maneuvers.circularizeAtApoapsis(connection, vessel)
     ExecuteNextManeuver(connection, vessel, node, autoStage=autoStage)
 
+    # trigger whatever is on action group 1
+    vessel.control.set_action_group(0, True)
+
     return aborter()
 
 
@@ -185,7 +191,7 @@ def Hover(connection=None, vessel=None):
     :param vessel: vessel to hover
     """
     if not connection:
-        connection = krpc.connect("Hover")
+        connection = defaultConnection("Hover")
 
     if not vessel:
         vessel = connection.space_center.active_vessel
@@ -211,7 +217,7 @@ def LandAnywhere(connection=None, vessel=None):
     :param vessel: vessel to land
     """
     if not connection:
-        connection = krpc.connect("Landing")
+        connection = defaultConnection("Landing")
     if not vessel:
         vessel = connection.space_center.active_vessel
 
@@ -244,7 +250,7 @@ def LandAnywhere(connection=None, vessel=None):
     if periapsis > radius * -0.5:
         # deorbit to to PE = -(0.5 * body.radius) # TODO pick where the deorbit burn happens?
         deorbitPeriapsisHeight = radius * -0.5 # TODO this is gonna be broken
-        deorbitPeriapsisNode = changePeriapsis(vessel, ut()+300, deorbitPeriapsisHeight)
+        deorbitPeriapsisNode = changePeriapsis(deorbitPeriapsisHeight, connection, vessel, ut()+300)
         deorbit = ExecuteManeuver(connection, vessel, node=deorbitPeriapsisNode)
         while not deorbit():
             time.sleep(0.01)
@@ -278,7 +284,7 @@ def SoftLanding(connection=None, vessel=None):
     :return:
     """
     if not connection:
-        connection = krpc.connect("Landing")
+        connection = defaultConnection("Landing")
 
     if not vessel:
         vessel = connection.space_center.active_vessel
@@ -302,7 +308,7 @@ def SoftLanding(connection=None, vessel=None):
 def RendevousWithTarget(connection=None, vessel=None):
     # TODO all of these below need to be programs
     if not connection:
-        connection = krpc.connect("Rendevous")
+        connection = defaultConnection("Rendevous")
 
     if not vessel:
         vessel = connection.space_center.active_vessel
@@ -314,17 +320,58 @@ def RendevousWithTarget(connection=None, vessel=None):
     # we can detect if we're targeting a vessel or a body
 
     matchPlanes = maneuvers.matchPlanes(connection, vessel, target)
-    ExecuteNextManeuver(connection, vessel, matchPlanes)
+    print("Matching planes")
+    if matchPlanes:
+        ExecuteNextManeuver(connection, vessel, matchPlanes)
 
     hohmannTransfer = maneuvers.hohmannTransfer(connection, vessel, target)
+    print("executing hohmann transfer")
     ExecuteNextManeuver(connection, vessel, hohmannTransfer)
 
     if targetVessel:
-        circularize = maneuvers.circularizeAtApoapsis(connection, vessel)
-        ExecuteNextManeuver(connection, vessel, circularize)
+        # TODO figure out the right way to match orbits here, since not all orbits are circular,
+        # and not all
+        #circularize = maneuvers.circularizeAtApoapsis(connection, vessel)
+        node = maneuvers.changeApoapsis(target.orbit.apoapsis_altitude)
+        ExecuteNextManeuver(connection, vessel, node)
 
         # let Art take control here
         rendevous.get_closer(connection)
     else:
         # TODO figure out what to do if we're targeting a body
         pass
+
+
+def DeorbitIntoAtmosphere(connection=None, vessel=None):
+    """
+    Deorbits the input vessel to ~ 30000m above altitude,
+    keeps the vessel oriented to retrograde, and fires
+    parachutes when it's safe
+
+    :param connection:
+    :param vessel:
+    :return:
+    """
+    if not connection:
+        connection = defaultConnection("Deorbit")
+    if not vessel:
+        vessel = connection.space_center.active_vessel
+
+    if vessel.orbit.periapsis_altitude > 31000:
+        deorbit = maneuvers.changePeriapsis(30000, connection=connection, vessel=vessel)
+
+        ExecuteNextManeuver(connection, vessel, deorbit)
+
+    vessel.control.sas_mode = vessel.control.sas_mode.retrograde
+    vessel.control.sas = True
+
+    # TODO dumb
+    vessel.control.activate_next_stage()
+
+    while vessel.flight().surface_altitude > 10000:
+        time.sleep(0.1)
+
+    # TODO dumb
+    vessel.control.activate_next_stage()
+
+    vessel.auto_pilot.disengage()

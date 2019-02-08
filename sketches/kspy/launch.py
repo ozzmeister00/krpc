@@ -9,16 +9,17 @@ from . import maths
 
 
 class Ascend(utils.Program):
-    def __init__(self, conn, vessel, targetAltitude):
+    def __init__(self, conn, vessel, targetAltitude, targetHeading=90):
         super(Ascend, self).__init__('Ascend')
 
         self.conn = conn
         self.vessel = vessel
         self.flight = vessel.flight(vessel.orbit.body.reference_frame)
         self.turnStartAltitude = 250
-        self.turnEndAltitude = vessel.orbit.body.atmosphere_depth * 0.75
+        self.turnEndAltitude = vessel.orbit.body.atmosphere_depth * 0.75 if vessel.orbit.body.atmosphere_depth > 1 else targetAltitude * .25
         self.targetAltitude = targetAltitude
         self.maxQ = 30000
+        self.targetHeading = targetHeading
 
         self.ut = conn.add_stream(getattr, conn.space_center, 'ut')
         self.altitude = conn.add_stream(getattr, self.flight, 'mean_altitude')
@@ -33,22 +34,19 @@ class Ascend(utils.Program):
         self.vessel.control.rcs = False
         self.vessel.control.throttle = 1.0
         self.autoPilot.reference_frame = vessel.surface_reference_frame
-        self.autoPilot.target_pitch_and_heading(90, 90)
+        self.autoPilot.target_pitch_and_heading(90, self.targetHeading)
         self.autoPilot.target_roll = float("nan")
         self.autoPilot.engage()
 
     def __call__(self):
         # TODO conditional calls make it hard to send messages to the message queue
         if self.altitude() < self.turnStartAltitude:
-            print("straight up")
-            self.autoPilot.target_pitch_and_heading(90, 90)
+            self.autoPilot.target_pitch_and_heading(90, self.targetHeading)
         elif self.turnStartAltitude < self.altitude() and self.altitude() < self.turnEndAltitude:
-            print("gravity turn")
             frac = maths.normalizeToRange(self.altitude(), self.turnStartAltitude, self.turnEndAltitude)
-            self.autoPilot.target_pitch_and_heading(90 * (1-frac), 90)
+            self.autoPilot.target_pitch_and_heading(90 * (1-frac), self.targetHeading)
         else:
-            print("horizontal")
-            self.autoPilot.target_pitch_and_heading(0, 90)
+            self.autoPilot.target_pitch_and_heading(0, self.targetHeading)
 
         if self.apoapsis() > self.targetAltitude:
             print("we done!")

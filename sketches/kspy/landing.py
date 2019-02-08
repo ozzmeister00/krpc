@@ -9,7 +9,7 @@ import time
 
 import krpc
 
-from .utils import hasAborted, Program, rpyToDirection
+from .utils import hasAborted, Program, rpyToDirection, defaultConnection
 from .maths import clamp
 
 
@@ -29,7 +29,7 @@ def getLandingReferenceFrame(landingLongitude, landingLatitude, landingAltitude=
     :return: the construct reference frame
     """
     if not connection:
-        connection = krpc.connect("getLandingReferenceFrame")
+        connection = defaultConnection("getLandingReferenceFrame")
     if not vessel:
         vessel = connection.space_center.active_vessel
     if not body:
