@@ -7,42 +7,44 @@ import math
 import numpy as np
 import time
 
-import krpc
-
-from .utils import hasAborted, Program, rpyToDirection, defaultConnection
-from .maths import clamp
+from . import utils
+from . import maths
 
 
-# https://www.reddit.com/r/Kos/comments/45amle/landing_at_target/
-
-def getLandingReferenceFrame(landingLongitude, landingLatitude, landingAltitude=None, connection=None, vessel=None, body=None):
+def getLandingReferenceFrame(landingLongitude,
+                             landingLatitude,
+                             landingAltitude=None,
+                             connection=None,
+                             vessel=None,
+                             body=None):
     """
     Constructs a reference frame object based on the vessel, body, and landing lat/long we're aiming for
 
-    :param landingLongitude:
-    :param landingLatitude:
+    Check https://www.reddit.com/r/Kos/comments/45amle/landing_at_target/ for implementation details.
+
+    :param landingLongitude: the longitude of our landing target
+    :param landingLatitude: the latitude of our landing target
     :param landingAltitude: If none, will use the terrain altitude at the given lat/long
 
-    :param connection:
-    :param vessel:
-    :param body:
-    :return: the construct reference frame
+    :param connection: The connection to operate upon
+    :param vessel: the vessel to check for
+    :param body: the body we're orbiting
+
+    :return: the constructed reference frame
     """
+
+    # init default values
     if not connection:
-        connection = defaultConnection("getLandingReferenceFrame")
+        connection = utils.defaultConnection("getLandingReferenceFrame")
     if not vessel:
         vessel = connection.space_center.active_vessel
     if not body:
         body = vessel.orbit.body
-
-    ReferenceFrame = connection.space_center.ReferenceFrame
-
-    # Define landing site
-    #landing_latitude = -(0+(5.0/60)+(48.38/60/60)) # Top of the VAB
-    #landing_longitude = -(74+(37.0/60)+(12.2/60/60))
-
     if not landingAltitude:
         landingAltitude = body.surface_height(landingLatitude, landingLongitude)
+
+    # sneak the namespace in to make creation later easier
+    ReferenceFrame = connection.space_center.ReferenceFrame
 
     # Determine landing site reference frame (orientation: x=zenith, y=north, z=east)
     landing_position = body.surface_position(landingLatitude, landingLongitude, body.reference_frame)
@@ -54,9 +56,9 @@ def getLandingReferenceFrame(landingLongitude, landingLatitude, landingAltitude=
                                     body.reference_frame,
                                     landing_position,
                                     q_long),
-                                (0,0,0),
-                                q_lat),
-                                (landingAltitude, 0, 0)
+                                    (0, 0, 0),
+                                    q_lat),
+                                    (landingAltitude, 0, 0)
                                 )
 
     # Up, North, East
@@ -64,154 +66,170 @@ def getLandingReferenceFrame(landingLongitude, landingLatitude, landingAltitude=
     return landing_reference_frame
 
 
-def unit_vector(vector):
-    """ Returns the unit vector of the vector provided.  """
-    return vector / np.linalg.norm(vector)
-
-
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'"""
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
-
-# art whaley (?)
-def coords_down_bearing(lat, lon, bearing, distance, body):
+def coordsDownBearing(lat, lon, bearing, distance, body):
     """
+    Provided by Art Whaley
+
     Takes a latitude, longitude and bearing in degrees, and a
     distance in meters over a given body.  Returns a tuple
     (latitude, longitude) of the point you've calculated.
 
-    :param lat:
-    :param lon:
-    :param bearing:
-    :param distance:
-    :param body:
+    :param lat: the latitude we're at
+    :param lon: the longitude we're at
+    :param bearing: the given heading
+    :param distance: how far away we want to check from the input point
+    :param body: the body we're checking for
+
     :return: (latitude, longitude) of the point x distance away down the bearing from the input lat/long
     """
-
     bearing = math.radians(bearing)
     R = body.equatorial_radius
     lat = math.radians(lat)
     lon = math.radians(lon)
 
-    a = math.sin(lat)
-    b = math.cos(distance / R)
-
-    lat2 = math.asin(
-        math.sin(lat) * math.cos(distance / R) + math.cos(lat) * math.sin(distance / R) * math.cos(bearing))
+    lat2 = math.asin(math.sin(lat) * math.cos(distance / R) + math.cos(lat) *
+                     math.sin(distance / R) * math.cos(bearing))
 
     lon2 = lon + math.atan2(math.sin(bearing) * math.sin(distance / R) * math.cos(lat),
                             math.cos(distance / R) - math.sin(lat) * math.sin(lat2))
 
     lat2 = math.degrees(lat2)
     lon2 = math.degrees(lon2)
-    return (lat2, lon2)
+
+    return lat2, lon2
 
 
-def check_terrain(lat1, lon1, lat2, lon2, body):
+def checkTerrain(lat1, lon1, lat2, lon2, body):
     """
     Returns an estimate of the highest terrain altitude between
     two latitude / longitude points.
 
-    :param lat1:
-    :param lon1:
-    :param lat2:
-    :param lon2:
-    :param body:
-    :return:
+    :param lat1: latitude of the first point, in degrees
+    :param lon1: longitude of the first point, in degrees
+    :param lat2: latitude of the second point, in degrees
+    :param lon2: longitude of the second point, in degrees
+    :param body: the body upon which to check
+
+    :return: an estimate of the highest terrain altitude from COM between those two points
     """
     lat = lat1
     lon = lon1
-    highest_lat = lat
-    highest_lon = lon
-    highest_alt = body.surface_height(lat, lon)
+    highestLat = lat
+    highestLon = lon
+    highestAlt = body.surface_height(lat, lon)
     latstep = (lat2 - lat1) / 20
     lonstep = (lon2 - lon1) / 20
 
+    # test 20 points between where we started and where we're going
     for x in range(20):
-        test_alt = body.surface_height(lat, lon)
-        if test_alt > highest_alt:
-            highest_lat = lat
-            highest_lon = lon
-            highest_alt = test_alt
+        testAlt = body.surface_height(lat, lon)
+        if testAlt > highestAlt:
+            highestLat = lat
+            highestLon = lon
+            highestAlt = testAlt
         lat = lat + latstep
         lon = lon + lonstep
-    return highest_alt
+
+    return highestAlt
 
 
 class SuicideBurnCalculator(object):
-    def __init__(self, conn, v, alt):
-        self.conn = conn
-        self.v = v
-        self.sc = conn.space_center
-        self.burn_time = np.inf
-        self.burn_duration = np.inf
-        self.ground_track = np.inf
-        self.effective_decel = np.inf
-        self.radius = np.inf
-        self.time_to_impact = np.inf
-        self.time_to_burn = np.inf
-        self.desired_throttle = 0.95
+    """
+    Calculator object used to determine the correct throttle value
+    for the input vessel to perform a suicide burn so that when surface_altitude = 0, velocity = 0
+    """
+    def __init__(self, connection, vessel, altitude):
+        """
 
-        self.alt = alt
+        :param connection: krpc Connection object to work with
+        :param vessel: vessel to work with
+        :param altitude: highest terrain point under the path of the vessel
+        """
+        self.connection = connection
+        self.vessel = vessel
+        self.spaceCenter = connection.space_center  # stash off the space center to work with it later
 
-        self.rf = self.sc.ReferenceFrame.create_hybrid(
-            position=v.orbit.body.reference_frame,
-            rotation=v.surface_reference_frame
+        # initialize our variables
+        self.burnTime = np.inf  # when to burn (in Universal Time))
+        self.burnDuration = np.inf  # for how long to but
+        self.groundTrack = np.inf  # height over the ground
+        self.effectiveDeceleration = np.inf  # the effective ability for this vessel to decelerate
+        self.radius = np.inf  # the radius of the body
+        self.timeToImpact = np.inf  # how long until we crash, given our current course and speed
+        self.timeToBurn = np.inf
+
+        self.altitude = altitude
+
+        self.desiredThrottle = 0.95
+
+        self.referenceFrame = self.spaceCenter.ReferenceFrame.create_hybrid(
+            position=vessel.orbit.body.reference_frame,
+            rotation=vessel.surface_reference_frame
         )
 
     def __call__(self):
-        rf = self.v.orbit.body.reference_frame
-        v1 = self.v.velocity(self.rf)
-        v2 = (0, 0, 1)
-        self.angle_from_horizontal = angle_between(v1, v2)
-        sine = math.sin(self.angle_from_horizontal)
+        # grab the body's reference frame
+        referenceFrame = self.vessel.orbit.body.reference_frame
 
-        g = self.v.orbit.body.surface_gravity
-        T = (self.v.max_thrust / self.v.mass)
+        vesselVelocity = self.vessel.velocity(self.referenceFrame)
+        horizontalVelocity = (0, 0, 1)
+        self.angleFromHorizontal = maths.angleBetween(vesselVelocity, horizontalVelocity)
+        sine = math.sin(self.angleFromHorizontal)
+
+        g = self.vessel.orbit.body.surface_gravity
+        thrust = (self.vessel.max_thrust / self.vessel.mass)
 
         # is it because of this line?
-        self.effective_decel = .5 * (-2 * g * sine + math.sqrt((2 * g * sine) * (2 * g * sine) + 4 * (T * T - g * g)))
-        self.decel_time = self.v.flight(self.rf).speed / self.effective_decel
+        self.effectiveDeceleration = .5 * (-2 * g * sine + math.sqrt((2 * g * sine) *
+                                                                     (2 * g * sine) + 4 *
+                                                                     (thrust * thrust - g * g)))
+
+        self.decelerationTime = self.vessel.flight(self.referenceFrame).speed / self.effectiveDeceleration
         # TODO: I'm not sure this is getting calculated right, as we end up cutting off so high
         # TODO: and any time we spend below about 95% throttle we might be using too much fuel
 
-        # no idea how this math works
-        radius = self.v.orbit.body.equatorial_radius + self.alt
-        TA = self.v.orbit.true_anomaly_at_radius(radius)
-        TA = -1 * TA
-        self.time_to_impact = self.v.orbit.ut_at_true_anomaly(TA) - self.sc.ut
-        self.time_to_burn = self.time_to_impact - self.decel_time
+        # the height of the highest point over our ground path from the body's COM
+        radius = self.vessel.orbit.body.equatorial_radius + self.altitude
+        TA = self.vessel.orbit.true_anomaly_at_radius(radius) * -1
+        self.timeToImpact = self.vessel.orbit.ut_at_true_anomaly(TA) - self.spaceCenter.ut
+        self.timeToBurn = self.timeToImpact - self.decelerationTime
 
-        impact_time = self.v.orbit.ut_at_true_anomaly(TA)
-        burn_time = impact_time - self.decel_time / 2
-        self.ground_track = ((burn_time - self.sc.ut) * self.v.flight(self.rf).speed) + (
-                    .5 * self.v.flight(self.rf).speed * self.decel_time)
+        impactTime = self.vessel.orbit.ut_at_true_anomaly(TA)
+        burnTime = impactTime - self.decelerationTime / 2
+        self.groundTrack = ((burnTime - self.spaceCenter.ut) * self.vessel.flight(self.referenceFrame).speed) + \
+                           (.5 * self.vessel.flight(self.referenceFrame).speed * self.decelerationTime)
 
-        self.desired_throttle = self.decel_time / self.time_to_impact
+        self.desiredThrottle = self.decelerationTime / self.timeToImpact
 
 
-class Descend(Program):
-    def __init__(self, vessel, connection):
+class Descend(utils.Program):
+    """
+    Program object to handle landing a vessel on a suborbital path over a body
+    """
+    def __init__(self, connection, vessel):
+        """
+        :param connection: The krpc.Connection to operate upon
+        :param vessel: The vessel to try and land
+        """
         super(Descend, self).__init__("Descend")
 
         self.vessel = vessel
         self.flight = vessel.flight(vessel.orbit.body.reference_frame)
 
         self.sbc = SuicideBurnCalculator(connection, vessel, 5000)
-        self.sbc()
+        self.sbc()  # init call of the SBC
 
         # find the highest point over our current ground path and use that to calculate our suicide burn, for safety
-        touchdown = coords_down_bearing(self.flight.latitude, self.flight.longitude, (180 + self.flight.heading),
-                                        self.sbc.ground_track, self.vessel.orbit.body)
-        self.sbc.alt = check_terrain(self.flight.latitude, self.flight.longitude, touchdown[0], touchdown[1],
-                                     self.vessel.orbit.body)
+        touchdown = coordsDownBearing(self.flight.latitude, self.flight.longitude, (180 + self.flight.heading),
+                                      self.sbc.groundTrack, self.vessel.orbit.body)
+
+        self.sbc.altitude = checkTerrain(self.flight.latitude, self.flight.longitude, touchdown[0], touchdown[1],
+                                         self.vessel.orbit.body)
         self.sbc()
 
         self.burning = False
 
+        # point surface velocity retrograde the entire time
         self.vessel.auto_pilot.reference_frame = self.vessel.surface_velocity_reference_frame
         self.vessel.auto_pilot.target_direction = (0, -1, 0)
         self.vessel.auto_pilot.target_roll = float("nan")
@@ -220,20 +238,21 @@ class Descend(Program):
     def __call__(self):
 
         # update the max safe altitude as our burn progresses
-        touchdown = coords_down_bearing(self.flight.latitude, self.flight.longitude, (180 + self.flight.heading),
-                                        self.sbc.ground_track, self.vessel.orbit.body)
-        self.sbc.alt = check_terrain(self.flight.latitude, self.flight.longitude, touchdown[0], touchdown[1],
-                                     self.vessel.orbit.body)
+        touchdown = coordsDownBearing(self.flight.latitude, self.flight.longitude, (180 + self.flight.heading),
+                                      self.sbc.groundTrack, self.vessel.orbit.body)
 
-        self.sbc()
+        self.sbc.altitude = checkTerrain(self.flight.latitude, self.flight.longitude, touchdown[0], touchdown[1],
+                                         self.vessel.orbit.body)
+
+        self.sbc()  # call the SBC to update itself
 
         # one-time call to check if it's time to burn
-        if self.sbc.time_to_burn <= 0.0:
+        if self.sbc.timeToBurn <= 0.0:
             self.burning = True
 
         # throttle should be proportional to how long we have to burn verses how long until we hit the ground
         if self.burning:
-            self.vessel.control.throttle = self.sbc.desired_throttle
+            self.vessel.control.throttle = self.sbc.desiredThrottle
 
         # once we're slow enough, move to the next mode
         if self.flight.speed < 10.0:
@@ -242,34 +261,35 @@ class Descend(Program):
         return True
 
     def displayValues(self):
-        return [self.prettyName,
-                'mxDcl: ' + str(round(self.sbc.effective_decel, 2)),
-                'brnDr: ' + str(round(self.sbc.decel_time, 2)),
-                'ttimp: ' + str(round(self.sbc.time_to_impact, 2)),
-                'alt  : ' + str(round(self.sbc.alt, 2)),
-                'grTrk: ' + str(round(self.sbc.ground_track, 2)),
-                'dsrTh: ' + str(round(self.sbc.desired_throttle, 2))
-                ]
+        return [self.prettyName]
 
 
-class SoftTouchdown(Program):
-    def __init__(self, vessel, connection):
+class SoftTouchdown(utils.Program):
+    """
+    Program object to take us from the suicide burn/descend program (which seems to leave us a little high)
+    all the way down to softly touch down on the surface of the body we're orbiting
+    """
+    def __init__(self, vessel):
+        """
+        :param vessel: the vessel to guide to a soft touchdown
+        """
         super(SoftTouchdown, self).__init__("SoftLanding")
 
         self.vessel = vessel
-        self.auto_pilot = vessel.auto_pilot
+        self.autoPilot = vessel.auto_pilot
         self.control = vessel.control
         self.flight = vessel.flight(vessel.orbit.body.reference_frame)
 
-        self.auto_pilot.reference_frame = self.vessel.surface_velocity_reference_frame
-        self.auto_pilot.target_direction = (0, -1, 0)
-        self.auto_pilot.target_roll = float("nan")
-        self.auto_pilot.engage()
+        # we still want to point surface velocity retrograde because at this point that shound be straight up
+        self.autoPilot.reference_frame = self.vessel.surface_velocity_reference_frame
+        self.autoPilot.target_direction = (0, -1, 0)
+        self.autoPilot.target_roll = float("nan")
+        self.autoPilot.engage()
 
     def __call__(self):
         # our maximum descent speed should be 10% of the distance to the ground
-        safe_descent = self.flight.surface_altitude / -10
-        safe_descent = max(safe_descent, -15)
+        safeDescent = self.flight.surface_altitude / -10
+        safeDescent = max(safeDescent, -15)  # but also clamp it, in case we're too far up or moving too quickly
 
         # the midpoint of our safe descent should be a hovering throttle
         a = self.vessel.orbit.body.surface_gravity - self.flight.vertical_speed
@@ -278,7 +298,7 @@ class SoftTouchdown(Program):
         midPoint = (F / self.vessel.available_thrust)
 
         # rudimentary proportional controller
-        e = safe_descent - self.flight.vertical_speed
+        e = safeDescent - self.flight.vertical_speed
         p0 = midPoint
         ekp = .25 * e
         self.control.throttle = ekp + p0
@@ -290,15 +310,20 @@ class SoftTouchdown(Program):
         return True
 
     def displayValues(self):
-        return [self.prettyName,
-                'thrtl: ' + str(round(self.control.throttle, 2)),
-                'alt  : ' + str(round(self.flight.surface_altitude)),
-                'vrtsp: ' + str(round(self.flight.vertical_speed))
-                ]
+        return [self.prettyName]
 
 
-class Hover(Program):
+class Hover(utils.Program):
+    """
+    A program object to allow the user to nicely hover and navigate around at a defined altitude
+    """
     def __init__(self, connection, vessel, targetAlt=12):
+        """
+
+        :param connection: the krpc.Connection to work with
+        :param vessel: the vessel to hover
+        :param targetAlt: our initial target hovering altitude (from COM to terrain)
+        """
         super(Hover, self).__init__('Hover')
 
         self.connection = connection
@@ -311,10 +336,12 @@ class Hover(Program):
         self.landingAlt = 10
 
         # TODO: I think these values are a little too responsive
+        # set our hovering control parameters
         self.horizSpeedMax = 10.0
         self.horizDeflectionMax = 45.0
         self.horizSpeedTolerance = 0.1
 
+        # set our initial state
         self.vessel.control.sas = False
         self.vessel.control.rcs = False
         self.vessel.control.throttle = 0.0
@@ -331,9 +358,12 @@ class Hover(Program):
         self.midYaw = 0.0
 
     def __call__(self):
+
+        # update our debug drawings
         self.connection.drawing.clear()
 
-        if hasAborted(self.vessel):
+        # allow the user to hit abort and softly and slowly land the craft
+        if utils.hasAborted(self.vessel):
             self.control.gear = True
             self.targetAlt -= 1.0
             time.sleep(1)
@@ -341,22 +371,21 @@ class Hover(Program):
                 self.control.abort = False
                 return False
 
+        # hitting the brakes means killing horizontal velocity
         if self.control.brakes:
-
-            # Kill horizontal velocity
             up, back, right = self.flight.velocity
 
             pitchOffset = (right / self.horizSpeedMax) * self.horizDeflectionMax
             yawOffset = (back / self.horizSpeedMax) * self.horizDeflectionMax
 
             # clamp to range
-            pitchOffset = clamp(pitchOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
-            yawOffset = clamp(yawOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
+            pitchOffset = maths.clamp(pitchOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
+            yawOffset = maths.clamp(yawOffset, -self.horizDeflectionMax, self.horizDeflectionMax)
 
             pitch = self.midPitch - pitchOffset
             yaw = self.midYaw - yawOffset
 
-            direction = rpyToDirection(pitch, yaw)
+            direction = maths.rpyToDirection(pitch, yaw)
 
             self.vessel.auto_pilot.target_direction = direction
             self.vessel.auto_pilot.target_roll = float("nan")
@@ -368,21 +397,26 @@ class Hover(Program):
         else:
             self.vessel.auto_pilot.target_direction = (0, 0, 1)
 
+        # add some debug drawings to help diagnose any potential over-correction issues
         self.connection.drawing.add_direction(self.vessel.direction(self.vessel.surface_reference_frame),
                                               self.vessel.surface_reference_frame)
         self.connection.drawing.add_direction(self.vessel.auto_pilot.target_direction,
                                               self.vessel.surface_reference_frame)
 
-        alt_error = self.targetAlt - self.flight.surface_altitude
+        # the different between where we want to be and where we are
+        altError = self.targetAlt - self.flight.surface_altitude
 
-        a = self.vessel.orbit.body.surface_gravity - self.flight.vertical_speed + alt_error
+        # acceleration
+        a = self.vessel.orbit.body.surface_gravity - self.flight.vertical_speed + altError
 
         # Compute throttle setting using newton's law F=ma
         F = self.vessel.mass * a
 
+        # if we've run out of fuel, bail out
         if not self.vessel.available_thrust:
             return False
 
+        # set the vessel's throttle to what it should be
         self.control.throttle = F / self.vessel.available_thrust
         return True
 

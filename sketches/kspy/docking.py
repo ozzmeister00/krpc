@@ -5,27 +5,34 @@ import math
 from .maths import Vector3
 
 
-# art whaley
-def getSetpoints(offset, proceed, speed_limit):
+def getSetPoints(offset, proceed, speedLimit):
     """
-    returns the computed set points -
-    set points are actually just the offset distances clamped to the
-    speed_limit variable!   This way we slow down as we get closer to the right
-    heading.
+
+    :param offset: the offset vector from the docking port
+    :param proceed: if we're supposed to proceed toward the docking port
+    :param speedLimit: how much to limit the speed of the vessel
+
+    :returns: The computed set points for docking, which is the offset distances clamped to the speedLimit
     """
-    tvup = max(min(offset.up, speed_limit), -speed_limit)
-    tvright = -1 * (max(min(offset.right, speed_limit), -speed_limit))
+    tvUp = max(min(offset.up, speedLimit), -speedLimit)
+    tvRight = -1 * (max(min(offset.right, speedLimit), -speedLimit))
+
     if proceed:
-        tvforward = -.2
+        tvForward = -.2
     else:
-        tvforward = max(min((10 - offset.forward), speed_limit), -speed_limit)
-    return Vector3(tvright, tvforward, tvup)
+        tvForward = max(min((10 - offset.forward), speedLimit), -speedLimit)
+
+    return Vector3(tvRight, tvForward, tvUp)
 
 
-# art whaley
 def proceedCheck(offset):
     """
-    returns true if we're lined up and ready to move forward to dock.
+    A simple check to make sure it's safe to move forward
+    toward our docking port
+
+    :param offset: the offset vector from the docking target
+
+    :returns: true if we're lined up and ready to move forward to dock.
     """
     return (offset.up < .1 and
             offset.right < .1 and

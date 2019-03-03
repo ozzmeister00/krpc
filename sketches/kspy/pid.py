@@ -1,5 +1,5 @@
 """
-PID Controller Library and Example
+PID Controller Library and Example from Art Whaley
 
    Like all of the scripts in my folder here, this file contains
    functions you might want to include into your own scripts for

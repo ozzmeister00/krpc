@@ -1,10 +1,15 @@
+"""
+Contains all the math helpers that don't quite fit anywhere else
+"""
 from __future__ import print_function, absolute_import, division
 
 import math
 import numpy as np
 import collections
 
-Vector3 = collections.namedtuple('v3', 'right forward up')
+# some helpful named tuples
+Vector3 = collections.namedtuple('Vector3', 'right forward up')
+latlon = collections.namedtuple('latlon', 'lat lon')
 
 
 def clamp(v, minV, maxV):
@@ -30,75 +35,37 @@ def normalizeToRange(v, a, b):
     return (v - a) / (b - a)
 
 
-# art whaley
-def unit_vector(vector):
-    """ Returns the unit vector of the vector provided.  """
-    return vector / np.linalg.norm(vector)
-
-
-# art whaley
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'"""
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
-
-# art whaley
-def get_phase_angle(vessel, target):
-    '''
-    returns the relative phase angle for a hohmann transfer
-    '''
-    vo = vessel.orbit
-    to = target.orbit
-    h = (vo.semi_major_axis + to.semi_major_axis) / 2  # SMA of transfer orbit
-    # calculate the percentage of the target orbit that goes by during the half period of transfer orbit
-    p = 1 / (2 * math.sqrt(math.pow(to.semi_major_axis, 3) / math.pow(h, 3)))
-    # convert that to an angle in radians
-    a = (2 * math.pi) - ((2 * math.pi) * p)
-    print("Transfer Phase Angle is {}.".format(a))
-    return a
-
-
-# art whaley
-def orbital_progress(vessel, ut):
-    '''
-    returns the orbital progress in radians, referenced to the planet's origin
-    of longitude.
-    '''
-    lan = vessel.orbit.longitude_of_ascending_node
-    arg_p = vessel.orbit.argument_of_periapsis
-    ma_ut = vessel.orbit.mean_anomaly_at_ut(ut)
-    return clamp_2pi(lan + arg_p + ma_ut)
-
-
-# art whaley
 def clamp_2pi(x):
-    '''
-    clamp radians to a single revolution
-    '''
-    while x > (2 * math.pi):
-        x -= (2 * math.pi)
-    return x
+    """
+    Clamp x (radians) to a single revolution
+
+    :return: radian value X clamped to a single revolution (2pi)
+    """
+    return x % (math.pi * 2)
 
 
-# art whaley
-def v3minus(v, t):
-    '''
-    vector subtraction
-    '''
-    a = v[0] - t[0]
-    b = v[1] - t[1]
-    c = v[2] - t[2]
-    return (a, b, c)
+def v3minus(a, b):
+    """
+    Subtract Vector B from Vector A
+
+    :param a: n-length tuple
+    :param b: n-length tuple
+
+    :return: a new tuple from the result of subtracting b from a
+    """
+    return [a[i] - b[i] for i, j in enumerate(a)]
 
 
-# art whaley
-def dist(v, t):
-    '''
-    returns distance (magnitude) between two
-    positions
-    '''
+def distance(v, t):
+    """
+    Get the distance (in meters) between two input vessels in the first vessel's
+    body's non rotating reference frame
+
+    :param v: The vessel to start from
+    :param t: the target object to check
+
+    :returns: distance in meters between the two vessels
+    """
     rf = v.orbit.body.non_rotating_reference_frame
     vec = v3minus(v.position(rf), t.position(rf))
     a = vec[0] * vec[0]
@@ -107,12 +74,16 @@ def dist(v, t):
     return math.sqrt(a + b + c)
 
 
-# art whaley
 def speed(v, t):
-    '''
-    returns speed (magnitude) between two
-    velocities
-    '''
+    """
+    returns speed (magnitude) between the velocity of two vessels in the first vessel's
+    body's non rotating reference frame
+
+    :param v: The vessel to start from
+    :param t: the target vessel
+
+    :return: The relative speed between the two vessels
+    """
     rf = v.orbit.body.non_rotating_reference_frame
     vec = v3minus(v.velocity(rf), t.velocity(rf))
     a = vec[0] * vec[0]
@@ -121,17 +92,37 @@ def speed(v, t):
     return math.sqrt(a + b + c)
 
 
-# art whaley
 def getOffsets(v, t):
-    '''
-    returns the distance (right, forward, up) between docking ports.
-    '''
+    """
+    :returns: the distance (right, forward, up) between docking ports.
+    """
     return Vector3._make(t.part.position(v.parts.controlling.reference_frame))
 
 
-# art whaley
 def getVelocities(v, t):
-    '''
-    returns the relative velocities (right, forward, up)
-    '''
+    """
+    :returns: the relative velocities (right, forward, up) between input vessels v and t
+    """
     return Vector3._make(v.velocity(t.reference_frame))
+
+
+def unitVector(vector):
+    """
+    :param vector: Vector to find the unit vector of
+
+    :return: the normalized vector of the vector provided, using numpy
+    """
+    return vector / np.linalg.norm(vector)
+
+
+def angleBetween(v1, v2):
+    """
+    Returns the angle in radians between vectors 'v1' and 'v2'
+
+    :param v1: XYZ Direction vector
+    :param v2: XYZ Direction vector
+    :return: The angle in radians between the two vectors
+    """
+    v1_u = unitVector(v1)
+    v2_u = unitVector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))

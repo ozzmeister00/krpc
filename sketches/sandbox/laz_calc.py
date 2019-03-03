@@ -2,13 +2,9 @@ import krpc
 
 import math
 
-class LaunchAzimuthCalculator(object):
-# //~~Created by space-is-hard~~
-# //~~Updated by TDW89~~
 
-# //To use: RUN LAZcalc.ks. SET data = LAZcalc_init([desired circular orbit altitude in meters],[desired orbital inclination;
-#  negative if launching from descending node, positive otherwise]). Then loop SET myAzimuth = LAZcalc(data).
-    def __init__(self, targetAltitude, targetInclination, launchLatitude, connection=None, vessel=None):
+class LaunchAzimuthCalculator(object):
+    def __init__(self, targetAltitude, targetInclination, connection=None, vessel=None):
         """
         Calculate the launch azimuth (heading from launch site) to achieve an orbit
         at the given altitude and inclination
