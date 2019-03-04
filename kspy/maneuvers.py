@@ -187,6 +187,7 @@ def changeInclination(newInclination, connection=None, vessel=None, ascendingNod
     if atTime:
         nodeUT = atTime
     else:
+        # TODO: this is not the right way to check when we cross the plane of the body we're orbiting
         if ascendingNode:
             nodeUT = (vessel.orbit.time_to_apoapsis / 2) + connection.space_center.ut
         else:
@@ -194,7 +195,11 @@ def changeInclination(newInclination, connection=None, vessel=None, ascendingNod
 
     # calculate plane change burn
     orbitalSpeed = vessel.orbit.orbital_speed_at(nodeUT)
+
     inc = vessel.orbit.inclination - newInclination
+    if vessel.orbit.inclination > newInclination:
+        inc = newInclination - vessel.orbit.inclination
+
     normal = orbitalSpeed * math.sin(inc)
     prograde = orbitalSpeed * math.cos(inc) - orbitalSpeed
 

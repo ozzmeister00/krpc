@@ -12,6 +12,7 @@ from . import docking
 from . import launch
 from . import landing
 from . import maneuvers
+from . import node
 from . import maths
 from . import rendezvous
 from . import rover
@@ -70,7 +71,7 @@ def Dock(connection, speedLimit=1.0):
         time.sleep(.05)
 
 
-def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False):
+def ExecuteNextManeuver(connection=None, vessel=None, maneuverNode=None, autoStage=False):
     """
     Attempts to execute the next maneuver node for the input vessel and connection
 
@@ -85,11 +86,10 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
         connection = utils.defaultConnection("ExecuteNextManeuver")
     if not vessel:
         vessel = connection.space_center.active_vessel
+    if not maneuverNode:
+        maneuverNode = vessel.control.nodes[0]
 
-    if not node:
-        node = vessel.control.nodes[0]
-
-    doManeuver = maneuvers.ExecuteManeuver(connection, vessel, node, tuneTime=20)
+    doManeuver = node.ExecuteManeuver(connection, vessel, maneuverNode, tuneTime=20)
     autoStager = utils.AutoStage(vessel)
 
     # pre-check this
@@ -108,7 +108,7 @@ def ExecuteNextManeuver(connection=None, vessel=None, node=None, autoStage=False
     vessel.auto_pilot.disengage()
 
     # remove the node!
-    node.remove()
+    maneuverNode.remove()
 
     return True
 

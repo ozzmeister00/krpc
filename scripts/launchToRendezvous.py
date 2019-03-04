@@ -9,13 +9,13 @@ import kspy.maneuvers
 
 connection = kspy.utils.defaultConnection("LaunchToRendezvous")
 vessel = connection.space_center.active_vessel
-target = connection.space_center.target_vessel
+target = connection.space_center.target_body or connection.space_center.target_vessel
 
 targetInclination = math.degrees(target.orbit.inclination)
 targetLAN = target.orbit.longitude_of_ascending_node
 
 # launch to a conventiently lower orbit that's at least out of the atmosphere
-targetAltitude = max(vessel.orbit.body.atmosphere_height, target.orbit.apoapsis_altitude * .66)
+targetAltitude = max(vessel.orbit.body.atmosphere_depth, target.orbit.apoapsis_altitude * .66)
 
 # launch
 kspy.programs.Launch(connection, vessel,

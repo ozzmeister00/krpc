@@ -109,6 +109,7 @@ class AutoStage(object):
             if engine and engine.active and engine.has_fuel:
                 return
 
+        print("Staging")
         self.vessel.control.activate_next_stage()
 
 
@@ -117,7 +118,7 @@ class Fairing(object):
     A class to check and handle the need to deploy fairings, but the fairings need to be
     tagged "deployFairing" in KSP
     """
-    def __init__(self, connection, vessel, deployAtms=0.001):
+    def __init__(self, connection, vessel, deployAtms=0.0001):
         """
 
         :param connection: krpc Connection object to check
@@ -142,6 +143,7 @@ class Fairing(object):
         if self.atms() <= self.deployAtms and not self.deployed:
             for fairing in self.fairings:
                 try:
+                    print("fairings")
                     fairing.fairing.jettison()
                 # if, for whatever reason, something goes wrong, just ignore it.
                 except:
