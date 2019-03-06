@@ -43,36 +43,36 @@ def orbitalProgress(vessel, ut):
 def posi_target(v, t):
     """
     returns vector to point at target
-    in the target's reference frame
+    in the vessel.orbital_reference_frame
     """
-    rf = t.reference_frame
+    rf = v.orbital_reference_frame
     return maths.v3minus(t.position(rf), v.position(rf))
 
 
 def anti_target(v, t):
     """
     returns vector to point away from target
-    in the target's reference frame
+    in the vessel.orbital_reference_frame
     """
-    rf = t.reference_frame
+    rf = v.orbital_reference_frame
     return maths.v3minus(v.position(rf), t.position(rf))
 
 
 def target_vplus(v, t):
     """
     returns vector to point at target velocity +
-    in vessel.orbit.body.non_rotating_reference_frame
+    in vessel.orbital_reference_frame
     """
-    rf = v.orbit.body.non_rotating_reference_frame
+    rf = v.orbital_reference_frame
     return maths.v3minus(v.velocity(rf), t.velocity(rf))
 
 
 def target_vminus(v, t):
     """
     returns vector to point at  - target velocity
-    in vessel.orbit.body.non_rotating_reference_frame
+    in vessel.orbital_reference_frame
     """
-    rf = v.orbit.body.non_rotating_reference_frame
+    rf = v.orbital_reference_frame
     return maths.v3minus(t.velocity(rf), v.velocity(rf))
 
 
@@ -120,7 +120,7 @@ def getCloser(connection, vessel, target):
     :param target: the thing we want to get closer to
     """
     matchv(connection, vessel, target)
-    while maths.distance(vessel, target) > 200:
+    while maths.distance(vessel, target) > 400:
         close_dist(vessel, target)
 
         matchv(connection, vessel, target)
@@ -135,7 +135,6 @@ def matchv(connection, vessel, target):
     :param vessel: vessel to control
     :param target: thing to match velocities with
     """
-
     # Calculate the length and start of burn
     m = vessel.mass
     isp = vessel.specific_impulse
@@ -147,7 +146,7 @@ def matchv(connection, vessel, target):
     ## Orient vessel to negative target relative velocity
     ap = vessel.auto_pilot
     ap.engage()
-    ap.reference_frame = vessel.orbit.body.non_rotating_reference_frame
+    ap.reference_frame = vessel.orbital_reference_frame
     ap.target_direction = target_vminus(vessel, target)
     ap.wait()
 
@@ -178,6 +177,7 @@ def close_dist(vessel, target):
     """
     # orient vessel to target
     ap = vessel.auto_pilot
+    ap.reference_frame = vessel.orbital_reference_frame
     ap.engage()
     time.sleep(.1)
     ap.target_direction = posi_target(vessel, target)

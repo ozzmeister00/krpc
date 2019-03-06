@@ -127,9 +127,10 @@ def Launch(connection=None,
     :param vessel: vessel to operate upon
     :param altitude: target circular altitude
     :param inclination: target inclination
-    :param longitudeOfAscendingNode: in radians
+    :param targetInclination: in radians
     :param autoStage: if we should autostage the vessel
-    :param fairing: if we should attempt to deploy fairings on the vessel
+    :param longitudeOfAscendingNode: longitude of the ascending node we want to launch into
+    :param deployFairings: if we should attempt to deploy fairings on the vessel
     """
     if not connection:
         connection = utils.defaultConnection("Launch")
@@ -145,11 +146,13 @@ def Launch(connection=None,
                                                                      vessel,
                                                                      targetInclination,
                                                                      longitudeOfAscendingNode)
-        if warpToTime > (ut() + 120):
-            connection.space_center.warp_to(warpToTime - 60)
+        if warpToTime > (ut() + 20):
+            print("warping to launch window")
+            connection.space_center.warp_to(warpToTime - 20)
 
         currentSolarLongitude = math.radians(vessel.flight().longitude) + vessel.orbit.body.rotation_angle
-        while currentSolarLongitude < (longitudeOfAscendingNode - math.radians(0.25)):
+        while warpToTime > (ut() - 3):
+            print("waiting to get close to the window {} {}".format(currentSolarLongitude, longitudeOfAscendingNode))
             currentSolarLongitude = math.radians(vessel.flight().longitude) + vessel.orbit.body.rotation_angle
 
             time.sleep(0.01)
@@ -342,7 +345,10 @@ def RendezvousWithTarget(connection=None, vessel=None):
         # circularize at the point and altitude of closest approach so we can give getCloser a fighting chance
         ExecuteNextManeuver(connection, vessel, node)
 
-        rendezvous.getCloser(connection)
+        # wait until closest approach
+        connection.space_center.warp_to(vessel.orbit.time_of_closest_approach(target.orbit))
+
+        rendezvous.getCloser(connection, vessel, target)
     else:
         # TODO How do we plot our course to target a periapsis above the target body?
         # since we don't know yet, just end the program and let the user tune the maneuver node
