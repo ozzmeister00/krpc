@@ -126,3 +126,63 @@ def angleBetween(v1, v2):
     v1_u = unitVector(v1)
     v2_u = unitVector(v2)
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+
+def magnitude(v):
+    return math.sqrt(sum([i * i for i in v]))
+
+
+def normalizeVector(v):
+    """
+    Given an input vector of infinity-1 magnitude, normalize its values so that
+    the sum of the vector is 1
+    :param v: float3
+
+    :return: float3, whose sum is 1
+    """
+    normalizer = 1.0 / sum(v)
+
+    normalized = [i * normalizer for i in v]
+    return normalized
+
+
+def vectorMultiply(v, f):
+    """
+    Multiply an input vector by an input factor
+
+    :param v: list of indeterminiate length
+    :param f: float factor by which to multiple each element of the input vector
+
+    :return: the multiplied vector
+    """
+    return [x * f for x in v]
+
+
+def vectorAdd(a, b):
+    """
+    add the individual elements of input vectors together such that
+    a = [1, 2, 3]
+    b = [3, 1, 2]
+    returns [4, 3, 5]
+
+    :param a: vector of indeterminiate length
+    :param b: vector of length = length of vector a
+    :return: vector a + vector b
+    """
+    return [a[i] + b[i] for i, j in enumerate(a)]
+
+
+def getPointAwayFrom(startPoint, direction, distance):
+    """
+    Given a start point, a normalized direction, and a distance,
+    returns a point Distance away from Point along Direction
+
+    :param startPoint: float3 position in xyz
+    :param direction: float3 xyz direction vector
+    :param distance: float how far away to find a point
+
+    :return: float3 point that is Distance away from point along the direction vector Direction
+    """
+    x = vectorMultiply(direction, distance)
+    return vectorAdd(startPoint, x)
+

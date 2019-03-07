@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c7a54a02-36fa-405e-a834-b31c00c39d1d" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/kspy/launch.py" beforeDir="false" afterPath="$PROJECT_DIR$/kspy/launch.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kspy/programs.py" beforeDir="false" afterPath="$PROJECT_DIR$/kspy/programs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kspy/rendezvous.py" beforeDir="false" afterPath="$PROJECT_DIR$/kspy/rendezvous.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/launchToOrbit.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/launchToOrbit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kspy/docking.py" beforeDir="false" afterPath="$PROJECT_DIR$/kspy/docking.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kspy/maths.py" beforeDir="false" afterPath="$PROJECT_DIR$/kspy/maths.py" afterDir="false" />
     </list>
     <ignored path="krpc.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -22,34 +21,34 @@
     <session id="1009868576">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="3" />
+          <entry key="project.closed" value="5" />
           <entry key="project.open.time.0" value="1" />
           <entry key="project.open.time.4" value="1" />
-          <entry key="project.open.time.5" value="1" />
+          <entry key="project.open.time.5" value="2" />
           <entry key="project.open.time.8" value="1" />
-          <entry key="project.opened" value="4" />
+          <entry key="project.opened" value="5" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="20" />
+          <entry key="py" value="22" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Python" value="17" />
+          <entry key="Python" value="19" />
           <entry key="Scratch" value="3" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="Python Console" value="1610" />
-          <entry key="py" value="3189" />
+          <entry key="Python Console" value="3182" />
+          <entry key="py" value="5789" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="4449" />
+          <entry key="Python" value="8621" />
           <entry key="Scratch" value="350" />
         </counts>
       </usages-collector>
@@ -61,21 +60,9 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/scripts/launchToRendezvous.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="20" column="20" selection-start-line="20" selection-start-column="14" selection-end-line="20" selection-end-column="20" />
-              <folding>
-                <element signature="e#97#108#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scripts/launchToOrbit.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="134">
+            <state relative-caret-position="272">
               <caret line="20" column="71" selection-start-line="20" selection-start-column="71" selection-end-line="20" selection-end-column="71" />
             </state>
           </provider>
@@ -94,7 +81,7 @@
         <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_11.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="238">
-              <caret line="18" column="52" lean-forward="true" selection-start-line="18" selection-start-column="52" selection-end-line="18" selection-end-column="52" />
+              <caret line="18" column="52" selection-start-line="18" selection-start-column="52" selection-end-line="18" selection-end-column="52" />
             </state>
           </provider>
         </entry>
@@ -102,7 +89,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kspy/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1201">
+            <state relative-caret-position="2329">
               <caret line="145" column="36" selection-start-line="145" selection-start-column="36" selection-end-line="145" selection-end-column="36" />
             </state>
           </provider>
@@ -111,8 +98,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kspy/programs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="198">
-              <caret line="349" lean-forward="true" selection-start-line="349" selection-end-line="349" />
+            <state relative-caret-position="5661">
+              <caret line="349" selection-start-line="349" selection-end-line="349" />
               <folding>
                 <element signature="e#83#147#0" expanded="true" />
               </folding>
@@ -120,11 +107,39 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kspy/rendezvous.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="140">
-              <caret line="45" column="41" selection-start-line="45" selection-start-column="41" selection-end-line="45" selection-end-column="41" />
+            <state relative-caret-position="646">
+              <caret line="43" column="7" selection-start-line="43" selection-start-column="7" selection-end-line="43" selection-end-column="7" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/kspy/docking.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1152">
+              <caret line="82" lean-forward="true" selection-start-line="82" selection-end-line="82" />
+              <folding>
+                <element signature="e#0#64#0" expanded="true" />
+                <marker date="1551941292714" expanded="true" signature="1498:1501" ph="..." />
+                <marker date="1551941292714" expanded="true" signature="1545:1550" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/kspy/maths.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="290">
+              <caret line="188" lean-forward="true" selection-start-line="188" selection-end-line="188" />
+              <folding>
+                <marker date="1551940319461" expanded="true" signature="3344:3349" ph="..." />
+                <marker date="1551940319461" expanded="true" signature="3934:4261" ph="..." />
+                <marker date="1551940319461" expanded="true" signature="4315:4789" ph="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -132,7 +147,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kspy/launch.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-153">
+            <state relative-caret-position="102">
               <caret line="12" column="4" selection-start-line="12" selection-start-column="4" selection-end-line="12" selection-end-column="4" />
             </state>
           </provider>
@@ -141,7 +156,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kspy/maneuvers.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="80">
+            <state relative-caret-position="3128">
               <caret line="189" column="101" selection-start-line="189" selection-start-column="101" selection-end-line="189" selection-end-column="101" />
             </state>
           </provider>
@@ -167,7 +182,11 @@
       <find>tuneTime</find>
       <find>Exec</find>
       <find>np.</find>
+      <find>drawing</find>
       <find>print</find>
+      <find>normalize</find>
+      <find>unitVector</find>
+      <find>position</find>
     </findStrings>
     <replaceStrings>
       <replace>checkTerrain</replace>
@@ -205,12 +224,14 @@
         <option value="$PROJECT_DIR$/scripts/launchToOrbit.py" />
         <option value="$PROJECT_DIR$/kspy/programs.py" />
         <option value="$PROJECT_DIR$/kspy/rendezvous.py" />
+        <option value="$PROJECT_DIR$/kspy/maths.py" />
+        <option value="$PROJECT_DIR$/kspy/docking.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="480" />
-    <option name="width" value="1440" />
+    <option name="x" value="949" />
+    <option name="width" value="980" />
     <option name="height" value="1044" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -434,7 +455,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1295" height="704" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.18680446" />
       <window_info id="Structure" order="1" weight="0.25" />
@@ -447,7 +467,7 @@
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.32911393" />
-      <window_info active="true" anchor="bottom" id="Python Console" order="8" visible="true" weight="0.3485114" />
+      <window_info anchor="bottom" id="Python Console" order="8" weight="0.3485114" />
       <window_info anchor="bottom" id="Terminal" order="9" weight="0.32924694" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="right" id="Commander" order="0" weight="0.4" />
@@ -560,13 +580,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/kspy/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1201">
-          <caret line="145" column="36" selection-start-line="145" selection-start-column="36" selection-end-line="145" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/sketches/sandbox/executeNextNode.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -574,17 +587,20 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_11.py">
+    <entry file="file://$PROJECT_DIR$/scripts/launchToRendezvous.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="238">
-          <caret line="18" column="52" lean-forward="true" selection-start-line="18" selection-start-column="52" selection-end-line="18" selection-end-column="52" />
+        <state relative-caret-position="272">
+          <caret line="20" column="20" selection-start-line="20" selection-start-column="14" selection-end-line="20" selection-end-column="20" />
+          <folding>
+            <element signature="e#97#108#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/kspy/maneuvers.py">
+    <entry file="file://$PROJECT_DIR$/scripts/launchToOrbit.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="80">
-          <caret line="189" column="101" selection-start-line="189" selection-start-column="101" selection-end-line="189" selection-end-column="101" />
+        <state relative-caret-position="272">
+          <caret line="20" column="71" selection-start-line="20" selection-start-column="71" selection-end-line="20" selection-end-column="71" />
         </state>
       </provider>
     </entry>
@@ -595,34 +611,24 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/launchToOrbit.py">
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_11.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="134">
-          <caret line="20" column="71" selection-start-line="20" selection-start-column="71" selection-end-line="20" selection-end-column="71" />
+        <state relative-caret-position="238">
+          <caret line="18" column="52" selection-start-line="18" selection-start-column="52" selection-end-line="18" selection-end-column="52" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/kspy/launch.py">
+    <entry file="file://$PROJECT_DIR$/kspy/utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-153">
-          <caret line="12" column="4" selection-start-line="12" selection-start-column="4" selection-end-line="12" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/scripts/launchToRendezvous.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="20" selection-start-line="20" selection-start-column="14" selection-end-line="20" selection-end-column="20" />
-          <folding>
-            <element signature="e#97#108#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="2329">
+          <caret line="145" column="36" selection-start-line="145" selection-start-column="36" selection-end-line="145" selection-end-column="36" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/kspy/programs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="349" lean-forward="true" selection-start-line="349" selection-end-line="349" />
+        <state relative-caret-position="5661">
+          <caret line="349" selection-start-line="349" selection-end-line="349" />
           <folding>
             <element signature="e#83#147#0" expanded="true" />
           </folding>
@@ -631,8 +637,46 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/kspy/rendezvous.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="140">
-          <caret line="45" column="41" selection-start-line="45" selection-start-column="41" selection-end-line="45" selection-end-column="41" />
+        <state relative-caret-position="646">
+          <caret line="43" column="7" selection-start-line="43" selection-start-column="7" selection-end-line="43" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kspy/launch.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="102">
+          <caret line="12" column="4" selection-start-line="12" selection-start-column="4" selection-end-line="12" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kspy/maneuvers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3128">
+          <caret line="189" column="101" selection-start-line="189" selection-start-column="101" selection-end-line="189" selection-end-column="101" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kspy/maths.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="290">
+          <caret line="188" lean-forward="true" selection-start-line="188" selection-end-line="188" />
+          <folding>
+            <marker date="1551940319461" expanded="true" signature="3344:3349" ph="..." />
+            <marker date="1551940319461" expanded="true" signature="3934:4261" ph="..." />
+            <marker date="1551940319461" expanded="true" signature="4315:4789" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kspy/docking.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1152">
+          <caret line="82" lean-forward="true" selection-start-line="82" selection-end-line="82" />
+          <folding>
+            <element signature="e#0#64#0" expanded="true" />
+            <marker date="1551941292714" expanded="true" signature="1498:1501" ph="..." />
+            <marker date="1551941292714" expanded="true" signature="1545:1550" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>

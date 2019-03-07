@@ -1,8 +1,10 @@
 from __future__ import absolute_import, print_function, division
 
 import math
+import time
 
 from .maths import Vector3
+from . import maths
 
 
 def getSetPoints(offset, proceed, speedLimit):
@@ -37,3 +39,44 @@ def proceedCheck(offset):
     return (offset.up < .1 and
             offset.right < .1 and
             math.fabs(10 - offset.forward) < .1)
+
+
+def orbitalTraverseToPoint(connection, vessel, targetPoint, targetReferenceFrame):
+    """
+    using RCS, move the input vessel toward the input point in the input reference frame
+
+    :param connection:
+    :param vessel:
+    :param targetPoint:
+    :param targetReferenceFrame:
+    :return:
+    """
+    pass
+
+
+def rBarDocking(connection, vessel, target):
+    pass
+    # RBar line is described by
+    tRF = target.orbital_reference_frame
+    start = target.position(tRF)
+
+    radialIn = maths.vectorMultiply(target.flight(tRF).radial, -1)
+    prograde = target.flight(tRF).prograde
+
+    # find our waypoints
+    rBarWaypoint = maths.getPointAwayFrom(start, radialIn, 50.0)
+    vBarWaypoint1 = maths.getPointAwayFrom(start, prograde, 50.0)
+    vBarWaypoint2 = maths.getPointAwayFrom(start, prograde, 20.0)
+    vBarWaypoint3 = maths.getPointAwayFrom(start, prograde, 50.0)
+
+    # also get target docking port to use for vbar waypoint positions
+    while True:
+
+        # draw our target waypoints
+        connection.drawing.clear()
+        connection.drawing.add_line(start, rBarWaypoint, target.orbital_reference_frame)
+        connection.drawing.add_line(start, vBarWaypoint1, target.orbital_reference_frame)
+        connection.drawing.add_line(start, vBarWaypoint2, target.orbital_reference_frame)
+        connection.drawing.add_line(start, vBarWaypoint3, target.orbital_reference_frame)
+
+        time.sleep(0.1)
