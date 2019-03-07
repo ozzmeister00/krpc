@@ -5,6 +5,7 @@ import time
 
 from .maths import Vector3
 from . import maths
+from . import drawing
 
 
 def getSetPoints(offset, proceed, speedLimit):
@@ -74,9 +75,9 @@ def rBarDocking(connection, vessel, target):
 
         # draw our target waypoints
         connection.drawing.clear()
-        connection.drawing.add_line(start, rBarWaypoint, target.orbital_reference_frame)
-        connection.drawing.add_line(start, vBarWaypoint1, target.orbital_reference_frame)
-        connection.drawing.add_line(start, vBarWaypoint2, target.orbital_reference_frame)
-        connection.drawing.add_line(start, vBarWaypoint3, target.orbital_reference_frame)
+        drawing.draw_cube(connection, rBarWaypoint, 5, target.orbital_reference_frame)
+        # connection.drawing.add_line(start, vBarWaypoint1, target.orbital_reference_frame)
+        # connection.drawing.add_line(start, vBarWaypoint2, target.orbital_reference_frame)
+        # connection.drawing.add_line(start, vBarWaypoint3, target.orbital_reference_frame)
 
         time.sleep(0.1)
