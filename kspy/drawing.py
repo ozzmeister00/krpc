@@ -3,9 +3,6 @@ Extension to the krpc drawing api
 """
 from __future__ import absolute_import, print_function, division
 
-import krpc
-
-from . import utils
 
 def draw_cube(connection, center, size, referenceFrame):
     """
@@ -19,26 +16,27 @@ def draw_cube(connection, center, size, referenceFrame):
     x = center[0] + size
     y = center[1] + size
     z = center[2] + size
-
-    # TODO nX, nY, nZ = centerX - size, not negative X
+    nX = center[0] - size
+    nY = center[1] - size
+    nZ = center[2] - size
 
     topFrontLeft = (x, y, z)
-    topFrontRight = (-x, y, z)
-    topBackLeft = (x, -y, z)
-    topBackRight = (-x, -y, z)
-    bottomFrontLeft = (x, y, -z)
-    bottomFrontRight = (-x, y, -z)
-    bottomBackLeft = (x, -y, -z)
-    bottomBackRight = (-x, -y, -z)
+    topFrontRight = (nX, y, z)
+    topBackLeft = (x, nY, z)
+    topBackRight = (nX, nY, z)
+    bottomFrontLeft = (x, y, nZ)
+    bottomFrontRight = (nX, y, nZ)
+    bottomBackLeft = (x, nY, nZ)
+    bottomBackRight = (nX, nY, nZ)
 
-    faces = [[topFrontLeft, topFrontRight, topBackRight, topBackLeft],
+    facesCoords = [[topFrontLeft, topFrontRight, topBackRight, topBackLeft],
              [bottomFrontLeft, bottomBackLeft, bottomBackRight, bottomFrontRight],
              [topFrontLeft, topBackLeft, bottomBackLeft, bottomFrontLeft],
              [topFrontLeft, topFrontRight, bottomFrontRight, bottomFrontLeft],
              [topFrontRight, topBackRight, bottomBackRight, bottomFrontRight],
              [topBackRight, topBackLeft, bottomBackLeft, bottomBackRight]]
 
-    for face in faces:
-        print(face)
-        connection.drawing.add_polygon(face, referenceFrame)
+    faces = []
 
+    for verts in facesCoords:
+        faces.append(connection.drawing.add_polygon(verts, referenceFrame))

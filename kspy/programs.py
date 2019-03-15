@@ -253,18 +253,18 @@ def LandAnywhere(connection=None, vessel=None):
     if periapsis > 31000:
         # get ourselves into a 30km x 30km parking orbit
         lowerPeriapsisNode = maneuvers.changePeriapsis(30000, connection, vessel)
-        ExecuteNextManeuver(connection, vessel, node=lowerPeriapsisNode)
+        ExecuteNextManeuver(connection, vessel, maneuverNode=lowerPeriapsisNode)
 
     if apoapsis > 31000:
         lowerApoapsisNode = maneuvers.changeApoapsis(30000, connection, vessel)
-        ExecuteNextManeuver(connection, vessel, lowerApoapsisNode)
+        ExecuteNextManeuver(connection, vessel, maneuverNode=lowerApoapsisNode)
 
     #run the deorbit burn
     if periapsis > radius * -0.4:
         # deorbit to to PE = -(0.5 * body.radius) # TODO pick where the deorbit burn happens?
         deorbitPeriapsisHeight = radius * -0.5  # TODO this is gonna be broken
         deorbitPeriapsisNode = maneuvers.changePeriapsis(deorbitPeriapsisHeight, connection, vessel, ut()+300)
-        ExecuteNextManeuver(connection, vessel, node=deorbitPeriapsisNode)
+        ExecuteNextManeuver(connection, vessel, maneuverNode=deorbitPeriapsisNode)
 
     # now that we've set ourselves up on a suborbital trajectory, hand it over to the soft landing mode
     SoftLanding(connection, vessel)
@@ -286,12 +286,12 @@ def SoftLanding(connection=None, vessel=None):
     if not vessel:
         vessel = connection.space_center.active_vessel
 
-    descend = landing.Descend(vessel, connection)
+    descend = landing.Descend(connection, vessel)
     while descend():
         time.sleep(0.01)
 
     vessel.control.gear = True
-    softTouchdown = landing.SoftTouchdown(vessel, connection)
+    softTouchdown = landing.SoftTouchdown(vessel)
     while softTouchdown():
         time.sleep(0.01)
 
@@ -326,8 +326,10 @@ def RendezvousWithTarget(connection=None, vessel=None):
     # match planes with our target, if necessary
     matchPlanes = maneuvers.matchPlanes(connection, vessel, target)
     if matchPlanes:
+        print("matching planes!")
         ExecuteNextManeuver(connection, vessel, matchPlanes)
 
+    print("plotting maneuver")
     # plot the maneuver to meet our target
     hohmannTransfer = maneuvers.hohmannTransfer(connection, vessel, target)
 
@@ -347,6 +349,8 @@ def RendezvousWithTarget(connection=None, vessel=None):
 
         # wait until closest approach
         connection.space_center.warp_to(vessel.orbit.time_of_closest_approach(target.orbit))
+
+        print("getting closer")
 
         rendezvous.getCloser(connection, vessel, target)
     else:
