@@ -410,18 +410,21 @@ def RoveToTarget(connection=None, vessel=None, target=None, saveInterval=120, ma
     if not vessel:
         vessel = connection.space_center.active_vessel
     if not target:
-        target = connection.space_center.active_target
+        target = connection.space_center.target_vessel
 
     flight = target.flight()
 
     latitude = flight.latitude
     longitude = flight.longitude
 
+    print("setting up waypoint")
     # add a waypoint above our target
     wp1 = connection.space_center.waypoint_manager.add_waypoint(latitude, longitude, vessel.orbit.body, "Target")
 
+    roverGo = rover.RoverGo(connection, vessel, wp1, maxSpeed, savetime=saveInterval)
+
     # call the rover autopilot
-    while rover.RoverGo(connection, vessel, wp1, maxSpeed, savetime=saveInterval):
+    while not roverGo():
         time.sleep(0.01)
 
     # remove the waypoint when the function returns

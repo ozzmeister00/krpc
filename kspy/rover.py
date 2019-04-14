@@ -119,7 +119,9 @@ class RoverGo(utils.Program):
         self.speed = speed
 
     def __call__(self):
+        print("autosave")
         self.autosave()  # make sure we're saved up properly
+        print("recharge")
         self.recharge()  # make sure we're charged up
 
         location = maths.latlon(self.groundTelem.latitude, self.groundTelem.longitude)
@@ -136,8 +138,9 @@ class RoverGo(utils.Program):
 
         # Check if we're close and end the program
         if distanceOverSurface(self.target, location, self.vessel.orbit.body) < 50:
+            print("Done")
             return True
-
+        print("Roving")
         return False
 
 
@@ -169,11 +172,12 @@ class RoverAutoSave(utils.Program):
     def __call__(self):
         # if save time is zero, just bail out
         if self.saveTime == 0:
+            print("bail")
             return
 
         # if it's time to save
         if time.time() - self.lastSave > self.saveTime:
-
+            print("Saving")
             # wait until it's safe to save
             if self.safeToSave():
                 # Stop the rover then save
@@ -182,10 +186,10 @@ class RoverAutoSave(utils.Program):
 
                 # we're slowing down
                 while self.surfTelem.speed > 0.01:
-                    pass
+                    time.sleep(0.1)
                 time.sleep(.1)
 
-                self.connection.quicksave()
+                self.connection.space_center.quicksave()
 
                 self.vessel.control.brakes = False
 
@@ -227,13 +231,20 @@ class RoverRecharge(utils.Program):
 
         # if we're at less than 5% of our max charge, stop the rover and wait until we're charged up
         if EC / self.maxEC < .05:
+            print("Charging")
             self.vessel.control.wheel_throttle = 0
             self.vessel.control.brakes = True
+
+            print("slowing down")
             while self.telemetry.speed > 0.01:
-                pass
+                time.sleep(0.1)
+
             self.vessel.control.solar_panels = True
+
+            print("charging")
             while EC / self.maxEC < .85:  # less than 85% charge
                 EC = self.vessel.resources.amount('ElectricCharge')
+                time.sleep(0.1)
 
             # for safety, retract the solar panels so they don't break
             self.vessel.control.solar_panels = False
