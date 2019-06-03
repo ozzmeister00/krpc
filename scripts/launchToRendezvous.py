@@ -15,17 +15,22 @@ targetInclination = math.degrees(target.orbit.inclination)
 targetLAN = target.orbit.longitude_of_ascending_node
 
 # launch to a conventiently lower orbit that's at least out of the atmosphere
-targetAltitude = max(vessel.orbit.body.atmosphere_depth, target.orbit.apoapsis_altitude * .66)
+if connection.space_center.target_body:
+    targetAltitude = 300000
+else:
+    targetAltitude = max(vessel.orbit.body.atmosphere_depth + 2000, target.orbit.apoapsis_altitude * 1.66)
 
 # launch
 kspy.programs.Launch(connection, vessel,
                      altitude=targetAltitude,
                      targetInclination=targetInclination,
-                     longitudeOfAscendingNode=targetLAN)
+                     longitudeOfAscendingNode=targetLAN,
+                     autoStage=False)
 
 # fine-tune our orbit to reduce eccentricity
-node = kspy.maneuvers.circularizeAtPeriapsis(connection, vessel)
-kspy.programs.ExecuteNextManeuver(connection, vessel, node)
+if vessel.orbit.eccentricity > 1.0:
+    node = kspy.maneuvers.circularizeAtPeriapsis(connection, vessel)
+    kspy.programs.ExecuteNextManeuver(connection, vessel, node)
 
-# then initiate our rendezvous maneuver
+# # then initiate our rendezvous maneuver
 kspy.programs.RendezvousWithTarget(connection, vessel)

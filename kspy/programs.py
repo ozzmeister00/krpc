@@ -89,7 +89,7 @@ def ExecuteNextManeuver(connection=None, vessel=None, maneuverNode=None, autoSta
     if not maneuverNode:
         maneuverNode = vessel.control.nodes[0]
 
-    doManeuver = node.ExecuteManeuver(connection, vessel, maneuverNode, tuneTime=20)
+    doManeuver = node.ExecuteManeuver(connection, vessel, maneuverNode, tuneTime=10)
     autoStager = utils.AutoStage(vessel)
 
     # pre-check this
@@ -382,6 +382,7 @@ def DeorbitIntoAtmosphere(connection=None, vessel=None):
     vessel.auto_pilot.reference_frame = vessel.surface_reference_frame
     vessel.auto_pilot.engage()
 
+    print("jettisoning everything")
     vessel.control.activate_next_stage()
 
     while vessel.flight().surface_altitude > 10000:

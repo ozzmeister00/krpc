@@ -147,6 +147,7 @@ class Ascend(utils.Program):
         # End the turn within the target's atmosphere (if one exists),
         # otherwise end the turn at 25% of the target altitude
         self.turnEndAltitude = vessel.orbit.body.atmosphere_depth * 0.75 if vessel.orbit.body.atmosphere_depth > 1 else targetAltitude * .25
+        #self.turnEndAltitude = targetAltitude * .5
         self.targetAltitude = targetAltitude
 
         # TODO allow users to tune this
