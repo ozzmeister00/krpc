@@ -10,9 +10,9 @@ import kspy.maneuvers
 connection = kspy.utils.defaultConnection("LaunchToOrbit")
 vessel = connection.space_center.active_vessel
 
-targetInclination = math.radians(0.0)
-targetLAN = math.radians(0.0)
-targetAltitude = 500000
+targetInclination = math.radians(2.1)
+targetLAN = math.radians(67.8)
+targetAltitude = 3000000
 
 # launch
 kspy.programs.Launch(connection, vessel,

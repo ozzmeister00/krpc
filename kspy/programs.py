@@ -302,7 +302,7 @@ def SoftLanding(connection=None, vessel=None):
     return True
 
 
-def RendezvousWithTarget(connection=None, vessel=None):
+def RendezvousWithTarget(connection=None, vessel=None, separation=None):
     """
     Given the input connection and vessel, plot and execute a rendezvous with the active target
 
@@ -310,6 +310,7 @@ def RendezvousWithTarget(connection=None, vessel=None):
 
     :param connection: Connection to plot for, will use default if none provided
     :param vessel: vessel to plot for, will use active if none provided
+    :param separation: how far away from the target do we want to be. If none, will use defaults (400m, or edge of SOI)
     """
     if not connection:
         connection = utils.defaultConnection("Rendevous")
@@ -342,21 +343,53 @@ def RendezvousWithTarget(connection=None, vessel=None):
 
         altitudeAtClosest = target.orbit.radius_at(timeOfClosestApproach) - target.orbit.body.equatorial_radius
 
-        node = maneuvers.changeApoapsis(altitudeAtClosest, connection, vessel, timeOfClosestApproach)
+        maneuverNode = maneuvers.changeApoapsis(altitudeAtClosest, connection, vessel, timeOfClosestApproach)
 
         # circularize at the point and altitude of closest approach so we can give getCloser a fighting chance
-        ExecuteNextManeuver(connection, vessel, node)
+        ExecuteNextManeuver(connection, vessel, maneuverNode)
 
         # wait until closest approach
         connection.space_center.warp_to(vessel.orbit.time_of_closest_approach(target.orbit))
 
         print("getting closer")
 
-        rendezvous.getCloser(connection, vessel, target)
+        if not separation:
+            separation = 400
+
+        rendezvous.getCloser(connection, vessel, target, closeDistance=separation)
+
     else:
-        # TODO How do we plot our course to target a periapsis above the target body?
-        # since we don't know yet, just end the program and let the user tune the maneuver node
-        pass
+        # plot our hohmann transfer
+        doManeuver = node.ExecuteManeuver(connection, vessel, hohmannTransfer, tuneTime=10)
+
+        # if there's a "next_orbit" that means we're breaking out of our SOI
+        # and that's all we need for body rendezvous
+        while not doManeuver() and not vessel.orbit.next_orbit:
+            time.sleep(0.05)
+
+        # kill the autopilot
+        vessel.control.sas = True
+        vessel.control.throttle = 0.0
+        vessel.auto_pilot.disengage()
+
+        # remove the node now that we're done with it
+        hohmannTransfer.remove()
+
+        # warp to SOI change
+        connection.space_center.warp_to(connection.space_center.ut + vessel.orbit.time_to_soi_change)
+
+        # circularize at periapsis
+        maneuvers.circularizeAtPeriapsis(connection, vessel)
+        ExecuteNextManeuver(connection, vessel)
+
+        # if the user provided a target orbit, go for it
+        if separation:
+            # since we're circular, we don't need to wait until apoapsis to lower our periapsis
+            maneuvers.changePeriapsis(separation, connection, vessel, atTime=connection.space_center.ut + 300)
+            ExecuteNextManeuver(connection, vessel)
+
+            maneuvers.circularizeAtPeriapsis(connection, vessel)
+            ExecuteNextManeuver(connection, vessel)
 
 
 def DeorbitIntoAtmosphere(connection=None, vessel=None):

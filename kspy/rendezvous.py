@@ -97,6 +97,8 @@ def timeTransfer(vessel, target, ut, phaseAngle):
         ut += 10
     ut -= 10
 
+    print("switching to fine unbound search")
+
     # fine unbound search
     while True:
         v_pos = orbitalProgress(vessel, ut)
@@ -109,7 +111,7 @@ def timeTransfer(vessel, target, ut, phaseAngle):
     return ut
 
 
-def getCloser(connection, vessel, target):
+def getCloser(connection, vessel, target, closeDistance=400):
     """
     Short program to get two vessels closer together in orbit
 
@@ -118,9 +120,10 @@ def getCloser(connection, vessel, target):
     :param connection: the connection upon which to operate
     :param vessel: the vessel to control
     :param target: the thing we want to get closer to
+    :param closeDistance: how close before we cut off
     """
     matchv(connection, vessel, target)
-    while maths.distance(vessel, target) > 400:
+    while maths.distance(vessel, target) > closeDistance:
         close_dist(vessel, target)
 
         matchv(connection, vessel, target)

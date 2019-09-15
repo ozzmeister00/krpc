@@ -119,9 +119,9 @@ class RoverGo(utils.Program):
         self.speed = speed
 
     def __call__(self):
-        print("autosave")
+
         self.autosave()  # make sure we're saved up properly
-        print("recharge")
+
         self.recharge()  # make sure we're charged up
 
         location = maths.latlon(self.groundTelem.latitude, self.groundTelem.longitude)
@@ -140,7 +140,7 @@ class RoverGo(utils.Program):
         if distanceOverSurface(self.target, location, self.vessel.orbit.body) < 50:
             print("Done")
             return True
-        print("Roving")
+
         return False
 
 

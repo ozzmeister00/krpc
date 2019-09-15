@@ -18,7 +18,7 @@ targetLAN = target.orbit.longitude_of_ascending_node
 if connection.space_center.target_body:
     targetAltitude = 300000
 else:
-    targetAltitude = max(vessel.orbit.body.atmosphere_depth + 2000, target.orbit.apoapsis_altitude * 1.66)
+    targetAltitude = max(vessel.orbit.body.atmosphere_depth + 2000, target.orbit.apoapsis_altitude * 0.66)
 
 # launch
 kspy.programs.Launch(connection, vessel,
